@@ -1,0 +1,5 @@
+Fecho: an Echo State Network library for OSX.
+
+This project is still very much in alpha, definitely not production ready yet. 
+
+The library is optimised for use in interactive audio and multimedia scenarios, along with the conventional ML uses for ESNs.

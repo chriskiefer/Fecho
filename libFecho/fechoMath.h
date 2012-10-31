@@ -1,11 +1,3 @@
-//
-//  fechoMath.h
-//  Esnesnesn
-//
-//  Created by Chris Kiefer on 27/09/2012.
-//  Copyright (c) 2012 Goldsmiths, University of London. EAVI. All rights reserved.
-//
-
 #ifndef Esnesnesn_fechoMath_h
 #define Esnesnesn_fechoMath_h
 

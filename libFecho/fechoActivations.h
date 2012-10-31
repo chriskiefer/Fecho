@@ -1,11 +1,3 @@
-//
-//  fechoActivations.h
-//  Esnesnesn
-//
-//  Created by Chris Kiefer on 24/09/2012.
-//  Copyright (c) 2012 Goldsmiths, University of London. EAVI. All rights reserved.
-//
-
 #ifndef Esnesnesn_fechoActivations_h
 #define Esnesnesn_fechoActivations_h
 #include "fechoMath.h"

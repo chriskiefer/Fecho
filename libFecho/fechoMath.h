@@ -204,6 +204,26 @@ namespace Fecho {
                                 vDSP_Length     __vDSP_N) {
             vDSP_vsmaD(__vDSP_A, __vDSP_I, __vDSP_B, __vDSP_C, __vDSP_K, __vDSP_D, __vDSP_L, __vDSP_N);
         }
+        
+        static inline void vsub(const float   __vDSP_input1[],
+                                vDSP_Stride   __vDSP_stride1,
+                                const float   __vDSP_input2[],
+                                vDSP_Stride   __vDSP_stride2,
+                                float         __vDSP_result[],
+                                vDSP_Stride   __vDSP_strideResult,
+                                vDSP_Length   __vDSP_size) {
+            vDSP_vsub(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_stride2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
+        }
+
+        static inline void vsub(const double   __vDSP_input1[],
+                                vDSP_Stride    __vDSP_stride1,
+                                const double   __vDSP_input2[],
+                                vDSP_Stride    __vDSP_stride2,
+                                double         __vDSP_result[],
+                                vDSP_Stride    __vDSP_strideResult,
+                                vDSP_Length    __vDSP_size) {
+            vDSP_vsubD(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_stride2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
+        }
 
         
         //FROM vforce

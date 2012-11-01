@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include "fechoActivations.h"
 #include "fechoMath.h"
+#include "fechoUtil.h"
 
 using namespace std;
 
@@ -493,6 +494,8 @@ namespace Fecho {
             }
         }
     };
+    
+
 
     
 

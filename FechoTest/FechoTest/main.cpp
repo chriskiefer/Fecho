@@ -23,6 +23,9 @@ void sineWaveTest() {
     Reservoir<float> net(0, 20, &resAct);
     net.setInScale(0).setInShift(0).setNoise(0.00001);
     
+    MultiStreamRecorder<float> actsRecorder;
+    actsRecorder.setChannels(net.getNRes());
+    
     ActivationFunctionLinear<float> roAct;
     ReadOut<float> ro(net, 1, &roAct);
     ro.setMapInsToOuts(true);
@@ -70,6 +73,7 @@ void sineWaveTest() {
     for(int i=0; i < runSize; i++) {
         sim.simulate(&trainIn[0]);
         res[i] = ro.getOutputs()[0];
+        actsRecorder.addFrame(net.getActivations());
     }
     pyCode << "simIn = array([";
 //    for(int i=0; i < runSize; i++) {
@@ -78,6 +82,7 @@ void sineWaveTest() {
 //    }
 //    cout << endl;
     pyCode << "])\n";
+
     cout << "Result: \n";
     pyCode << "simOut = array([";
     for(int i=0; i < runSize; i++) {
@@ -86,6 +91,8 @@ void sineWaveTest() {
     }
     pyCode << "])\n";
     cout << endl;
+    
+    pyCode << actsRecorder.dumpToPyCode();
     
     ts = clock() - ts;
     double timeSecs =  ts / (double) CLOCKS_PER_SEC;

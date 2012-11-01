@@ -16,6 +16,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		834387AE16427614008F578F /* fechoUtil.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fechoUtil.h; sourceTree = "<group>"; };
 		83884D25163F296E00CD785F /* libFecho.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libFecho.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		83884D2D163F29D300CD785F /* dSFMT-params.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "dSFMT-params.h"; sourceTree = "<group>"; };
 		83884D2E163F29D300CD785F /* dSFMT-params11213.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "dSFMT-params11213.h"; sourceTree = "<group>"; };
@@ -58,6 +59,7 @@
 				83884D3B163F29E800CD785F /* fecho.h */,
 				83884D3C163F29E800CD785F /* fechoActivations.h */,
 				83884D3D163F29E800CD785F /* fechoMath.h */,
+				834387AE16427614008F578F /* fechoUtil.h */,
 				83884D26163F296E00CD785F /* Products */,
 			);
 			sourceTree = "<group>";

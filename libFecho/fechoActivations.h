@@ -27,14 +27,14 @@ namespace Fecho {
 #ifdef TARGET_OS_IPHONE
             for(int i=0; i < size; i++) x[i] = tanh(x[i]);
 #else
-            Math::vvtanh(x, x, &size);
+            Math::vforcetanh(x, x, &size);
 #endif
         };
         inline void invProcess(T* x, const int size) {
 #ifdef TARGET_OS_IPHONE
             for(int i=0; i < size; i++) x[i] = atanh(x[i]);
 #else
-            Math::vvatanh(x, x, &size);
+            Math::vforceatanh(x, x, &size);
 #endif
         };
     };
@@ -47,20 +47,20 @@ namespace Fecho {
 #ifdef TARGET_OS_IPHONE
             for(int i=0; i < size; i++) x[i] = 1.0 / (1.0 + exp(x[i]));
 #else
-            Math::vvexp(x, x, &size);
-            float one = 1.0f;
+            Math::vforceexp(x, x, &size);
+            T one = 1.0f;
             Math::vsadd(x, 1, &one, x, 1, size);
-            Math::vvrec(x, x, &size);
+            Math::vforcerec(x, x, &size);
 #endif
         }
         inline void invProcess(T* x, const int size) {
 #ifdef TARGET_OS_IPHONE
             for(int i=0; i < size; i++) x[i] = log(1.0/x[i] - 1.0);
 #else
-            Math::vvrec(x, x, &size);
-            float minusone = -1.0f;
+            Math::vforcerec(x, x, &size);
+            T minusone = -1.0f;
             Math::vsadd(x, 1, &minusone, x, 1, size);
-            Math::vvlog(x, x, &size);
+            Math::vforcelog(x, x, &size);
 #endif
         }
     };

@@ -11,48 +11,68 @@
 
 #include <sstream>
 #include <iostream>
+#include "fechoMath.h"
 
-template <typename T>
-class MultiStreamRecorder {
-public:
-    void setChannels(int num) {
-        streams.resize(num);
-        clear();
-    }
-    void addFrame(vector<T> &vals) {
-        for(int i=0; i < streams.size(); i++) {
-            streams[i].push_back(vals[i]);
+namespace Fecho {
+
+    template <typename T>
+    class MultiStreamRecorder {
+    public:
+        void setChannels(int num) {
+            streams.resize(num);
+            clear();
         }
-    }
-    void clear() {
-        for(int i=0; i < streams.size(); i++) {
-            streams[i].clear();
+        void addFrame(vector<T> &vals) {
+            for(int i=0; i < streams.size(); i++) {
+                streams[i].push_back(vals[i]);
+            }
+        }
+        void clear() {
+            for(int i=0; i < streams.size(); i++) {
+                streams[i].clear();
+            }
+        };
+        
+        vector<vector<T> > streams;
+        
+        string dumpToPyCode() {
+            stringstream s;
+            s << "x = array([";
+            for(int i=0; i < streams.size(); i++) {
+                s << "[";
+                for(int j=0; j < streams[i].size(); j++) {
+                    s << streams[i][j] << ",";
+                }
+                s << "],";
+            }
+            s << "]);\n";
+            return s.str();
         }
     };
     
-    vector<vector<T> > streams;
-    
-    string dumpToPyCode() {
+    template<typename T>
+    string toPyCode(string name, vector<T> &x) {
         stringstream s;
-        s << "x = array([";
-        for(int i=0; i < streams.size(); i++) {
-            s << "[";
-            for(int j=0; j < streams[i].size(); j++) {
-                s << streams[i][j] << ",";
-            }
-            s << "],";
+        s << name << " = array([";
+        for(int i=0; i < x.size(); i++) {
+            s << x[i] << ",";
         }
-        s << "]);\n";
+        s << "])\n";
         return s.str();
     }
-};
 
-template<typename T>
-class MSE {
-    static T calc(vector<T> &seq1, vector<T> &seq2) {
-        
-    }
-};
-
+    template<typename T>
+    class MSE {
+    public:
+        static T calc(vector<T> &seq1, vector<T> &seq2) {
+            vector<T> diff(seq1.size());
+            Math::vsub(&seq1[0], 1, &seq2[0], 1, &diff[0], 1, seq1.size());
+            Math::vsq(&diff[0], 1, &diff[0], 1, diff.size());
+            T mean;
+            Math::meanv(&diff[0], 1, &mean, diff.size());
+            return mean;
+        }
+    };
+}
 
 #endif

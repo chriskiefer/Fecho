@@ -412,27 +412,27 @@ namespace Fecho {
             int n=stateSize;
             int nrhs = ro->getSize();
             int lwork = -1;
-            float wkopt;
+            T wkopt;
             int info;
 //            debugArray<T>("ext", &extStatesCM[0], extStatesCM.size());
 //            debugArray<T>("des", &desOutsCM[0], desOutsCM.size());
 
             Math::gels(&trans, &m, &n, &nrhs, &extStatesCM[0], &m, &desOutsCM[0], &m, &wkopt, &lwork, &info);
             lwork = (int)wkopt;
-            vector<float> work(lwork);
+            vector<T> work(lwork);
             Math::gels(&trans, &m, &n, &nrhs, &extStatesCM[0], &m, &desOutsCM[0], &m, &work[0], &lwork, &info);
             cout << "info: " << info << endl;
             if (info > 0) {
                 throw(TrainingException());
             }else{
                 //            debugArray<T>("Result:", &desOutsCM[0], desOutsCM.size());
-                vector<float> result(nrhs * n);
+                vector<T> result(nrhs * n);
                 for(int i=0; i < nrhs; i++) {
                     for(int j=0; j < n; j++) {
                         result[(i*n) + j] = desOutsCM[(i*m) + j];
                     }
                 }
-                Math::colMajorToRowMajor(&result[0], nrhs, stateSize, &solvedWeights[0]);
+                Math::colMajorToRowMajor<T>(&result[0], nrhs, stateSize, &solvedWeights[0]);
             }
         }
         
@@ -467,7 +467,7 @@ namespace Fecho {
             int n=this->stateSize;
             int nrhs = this->ro->getSize();
             int lwork = -1;
-            float wkopt;
+            T wkopt;
             int info;
             //            debugArray<T>("ext", &extStatesCM[0], extStatesCM.size());
             //            debugArray<T>("des", &desOutsCM[0], desOutsCM.size());
@@ -477,20 +477,20 @@ namespace Fecho {
             lwork = -1;
             Math::gelss(&m, &n, &nrhs, &extStatesCM[0], &m, &desOutsCM[0], &m, &s[0], &rcond, &rank, &wkopt, &lwork, &info);
             lwork = (int)wkopt;
-            vector<float> work2(lwork);
+            vector<T> work2(lwork);
             Math::gelss(&m, &n, &nrhs, &extStatesCM[0], &m, &desOutsCM[0], &m, &s[0], &rcond, &rank, &work2[0], &lwork, &info);
             cout << "info: " << info << endl;
             if(info > 0) {
                 throw(TrainingException());
             }else{
     //            debugArray<T>("Result:", &desOutsCM[0], desOutsCM.size());
-                vector<float> result(nrhs * n);
+                vector<T> result(nrhs * n);
                 for(int i=0; i < nrhs; i++) {
                     for(int j=0; j < n; j++) {
                         result[(i*n) + j] = desOutsCM[(i*m) + j];
                     }
                 }
-                Math::colMajorToRowMajor(&result[0], nrhs, this->stateSize, &this->solvedWeights[0]);
+                Math::colMajorToRowMajor<T>(&result[0], nrhs, this->stateSize, &this->solvedWeights[0]);
             }
         }
     };

@@ -224,41 +224,71 @@ namespace Fecho {
                                 vDSP_Length    __vDSP_size) {
             vDSP_vsubD(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_stride2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
+        
+        static inline void vsq(const float   __vDSP_input[],
+                               vDSP_Stride   __vDSP_strideInput,
+                               float         __vDSP_result[],
+                               vDSP_Stride   __vDSP_strideResult,
+                               vDSP_Length   __vDSP_size) {
+            vDSP_vsq(__vDSP_input, __vDSP_strideInput, __vDSP_result, __vDSP_strideResult, __vDSP_size);
+        }
+
+        static inline void vsq(const double   __vDSP_input[],
+                               vDSP_Stride    __vDSP_strideInput,
+                               double         __vDSP_result[],
+                               vDSP_Stride    __vDSP_strideResult,
+                               vDSP_Length    __vDSP_size) {
+            vDSP_vsqD(__vDSP_input, __vDSP_strideInput, __vDSP_result, __vDSP_strideResult, __vDSP_size);
+        }
+        
+        static inline void meanv(float *       __vDSP_A,
+                                 vDSP_Stride   __vDSP_I,
+                                 float *       __vDSP_C,
+                                 vDSP_Length   __vDSP_N) {
+            vDSP_meanv(__vDSP_A, __vDSP_I, __vDSP_C, __vDSP_N);
+        }
+
+        static inline void meanv(double *      __vDSP_A,
+                                 vDSP_Stride   __vDSP_I,
+                                 double *      __vDSP_C,
+                                 vDSP_Length   __vDSP_N) {
+            vDSP_meanvD(__vDSP_A, __vDSP_I, __vDSP_C, __vDSP_N);
+        }
 
         
         //FROM vforce
-        static inline void vvtanh(float *x, const float *y, const int *z) {
+        static inline void vforcetanh(float *x, const float *y, const int *z) {
             vvtanhf(x, y, z);
         }
-        static inline void vvtanh(double *x, const double *y, const int *z) {
+        static inline void vforcetanh(double *x, const double *y, const int *z) {
             vvtanh(x, y, z);
         }
 
-        static inline void vvatanh(float *x, const float *y, const int *z) {
+        static inline void vforceatanh(float *x, const float *y, const int *z) {
             vvatanhf(x, y, z);
         }
-        static inline void vvatanh(double *x, const double *y, const int *z) {
+        static inline void vforceatanh(double *x, const double *y, const int *z) {
             vvatanh(x, y, z);
         }
 
-        static inline void vvexp(float *x, const float *y, const int *z) {
+        static inline void vforceexp(float *x, const float *y, const int *z) {
             vvexpf(x, y, z);
         }
-        static inline void vvexp(double *x, const double *y, const int *z) {
+        static inline void vforceexp(double *x, const double *y, const int *z) {
             vvexp(x, y, z);
         }
 
-        static inline void vvrec(float *x, const float *y, const int *z) {
+        static inline void vforcerec(float *x, const float *y, const int *z) {
             vvrecf(x, y, z);
         }
-        static inline void vvrec(double *x, const double *y, const int *z) {
+        static inline void vforcerec(double *x, const double *y, const int *z) {
             vvrec(x, y, z);
         }
 
-        static inline void vvlog(float *x, const float *y, const int *z) {
+        static inline void vforcelog(float *x, const float *y, const int *z) {
             vvlogf(x, y, z);
         }
-        static inline void vvlog(double *x, const double *y, const int *z) {
+        static inline void vforcelog(double *x, const double *y, const int *z) {
             vvlog(x, y, z);
         }
 

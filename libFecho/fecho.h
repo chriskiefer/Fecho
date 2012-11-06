@@ -204,13 +204,13 @@ namespace Fecho {
             //scale weights
             //find the eigenvalues of the reservoir
             char nchar = 'N';
-            int n = net.getNRes();
+            __CLPK_integer n = net.getNRes();
             vector<T> wr(n), wi(n);
             vector<T> rescopy(resWeightCount);
             memcpy(&rescopy[0], &res[0], resWeightCount * sizeof(T));
-            int lwork = -1;
+            __CLPK_integer lwork = -1;
             T wkopt;
-            int info;
+            __CLPK_integer info;
             Math::geev(&nchar, &nchar, &n, &rescopy[0], &n, &wr[0], &wi[0], NULL, &n, NULL, &n, &wkopt, &lwork, &info);
             lwork = (int)wkopt;
             vector<T> work(lwork);
@@ -408,12 +408,12 @@ namespace Fecho {
             Math::rowMajorToColMajor(&extStates[0], stateSize, collectedStatesCount, &extStatesCM[0]);
             Math::rowMajorToColMajor(outputData + (washout * ro->getSize()), ro->getSize(), collectedStatesCount, &desOutsCM[0]);
             char trans = 'N';
-            int m=collectedStatesCount;
-            int n=stateSize;
-            int nrhs = ro->getSize();
-            int lwork = -1;
+            __CLPK_integer m=collectedStatesCount;
+            __CLPK_integer n=stateSize;
+            __CLPK_integer nrhs = ro->getSize();
+            __CLPK_integer lwork = -1;
             T wkopt;
-            int info;
+            __CLPK_integer info;
 //            debugArray<T>("ext", &extStatesCM[0], extStatesCM.size());
 //            debugArray<T>("des", &desOutsCM[0], desOutsCM.size());
 
@@ -463,17 +463,17 @@ namespace Fecho {
             vector<T> desOutsCM(this->collectedStatesCount * this->ro->getSize());
             Math::rowMajorToColMajor(&this->extStates[0], this->stateSize, this->collectedStatesCount, &extStatesCM[0]);
             Math::rowMajorToColMajor(this->outputData + (this->washout * this->ro->getSize()), this->ro->getSize(), this->collectedStatesCount, &desOutsCM[0]);
-            int m=this->collectedStatesCount;
-            int n=this->stateSize;
-            int nrhs = this->ro->getSize();
-            int lwork = -1;
+            __CLPK_integer m=this->collectedStatesCount;
+            __CLPK_integer n=this->stateSize;
+            __CLPK_integer nrhs = this->ro->getSize();
+            __CLPK_integer lwork = -1;
             T wkopt;
-            int info;
+            __CLPK_integer info;
             //            debugArray<T>("ext", &extStatesCM[0], extStatesCM.size());
             //            debugArray<T>("des", &desOutsCM[0], desOutsCM.size());
             vector<T> s(min(m,n));
             T rcond = -1;
-            int rank;
+            __CLPK_integer rank;
             lwork = -1;
             Math::gelss(&m, &n, &nrhs, &extStatesCM[0], &m, &desOutsCM[0], &m, &s[0], &rcond, &rank, &wkopt, &lwork, &info);
             lwork = (int)wkopt;

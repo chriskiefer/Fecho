@@ -23,7 +23,7 @@ void sineWaveTest() {
 
     ActivationFunctionTanh<prec> resAct;
     Reservoir<prec> net(0, 20, &resAct);
-    net.setInScale(0).setInShift(0).setNoise(0.00000);
+    net.setInScale(0).setInShift(0).setNoise(0.000001);
     
     MultiStreamRecorder<prec> actsRecorder;
     actsRecorder.setChannels(net.getNRes());
@@ -34,10 +34,10 @@ void sineWaveTest() {
     
     try {
         Initialiser<prec> netInit;
-        netInit.setResRangeLow(-1).setResRangeHigh(1).setResConnectivity(0.15)
+        netInit.setResRangeLow(-0.5).setResRangeHigh(0.5).setResConnectivity(0.1)
         .setSpectralRadius(0.9)
         .setInConnectivity(0.0).setInRangeLow(-1).setInRangeHigh(1)
-        .setFbConnectivity(1.0).setFbRangeLow(-0.1).setFbRangeHigh(0.2)
+        .setFbConnectivity(1.0).setFbRangeLow(-0.9).setFbRangeHigh(0.9)
         .init(net, ro);
         net.dump();
     } catch (Initialiser<prec>::EVException e) {
@@ -113,10 +113,101 @@ void sineWaveTest() {
     
 }
 
+void sineWaveTest2() {
+    clock_t ts = clock();
+    
+    ActivationFunctionTanh<prec> resAct;
+    Reservoir<prec> net(0, 25, &resAct);
+    net.setInScale(0).setInShift(0).setNoise(1e-6);
+    
+    MultiStreamRecorder<prec> actsRecorder;
+    actsRecorder.setChannels(net.getNRes());
+    
+    ActivationFunctionLinear<prec> roAct;
+    ReadOut<prec> ro(net, 1, &roAct);
+    ro.setMapInsToOuts(true);
+    
+    try {
+        Initialiser<prec> netInit;
+        netInit.setResRangeLow(-1.0).setResRangeHigh(1.0).setResConnectivity(0.2)
+        .setSpectralRadius(0.85)
+        .setInConnectivity(0.0).setInRangeLow(-1).setInRangeHigh(1)
+        .setFbConnectivity(1.0).setFbRangeLow(-2.0).setFbRangeHigh(2.0)
+        .init(net, ro);
+        net.dump();
+    } catch (Initialiser<prec>::EVException e) {
+        cout << e.what() << endl;
+    }
+    
+    
+    
+    SimulatorLI<prec> sim(net, ro, 0.9);
+    
+    vector<prec> ins;
+    ins.push_back(1.0);
+    
+    vector<prec> trainIn, trainOut;
+    int trainSize = 4000;
+    int runSize = 200;
+    trainIn.resize(0);
+    trainOut.resize(trainSize);
+    vector<prec> testOut(runSize);
+    
+    vector<prec> sig(trainSize + runSize);
+    
+    for(int i=0; i < sig.size(); i++) {
+        prec r = sin(i/150.0) + sin(i/13.0);
+        sig[i] = r;
+    }
+    
+    std::copy(sig.begin(), sig.begin() + trainSize, trainOut.begin());
+    std::copy(sig.begin() + trainSize, sig.end(), testOut.begin());
+    
+    TrainerPseudoInverse<prec> tr(&sim, &ro, trainIn, trainOut, trainSize, 2000);
+    cout << "Training...\n";
+    tr.train();
+    
+    cout << "Running trained ESN\n";
+    vector<prec> res(runSize);
+    //    net.resetStates();
+    for(int i=0; i < runSize; i++) {
+        sim.simulate(&trainIn[0]);
+        res[i] = ro.getOutputs()[0];
+        actsRecorder.addFrame(net.getActivations());
+    }
+    
+    cout << "processed in " << ((clock() - ts) / (double) CLOCKS_PER_SEC) << " secs\n";
+    
+    pyCode << "simIn = array([";
+    //    for(int i=0; i < runSize; i++) {
+    //        cout << trainIn[i] << ",";
+    //        pyCode << trainIn[i] << ",";
+    //    }
+    //    cout << endl;
+    pyCode << "])\n";
+    
+    cout << "Result: \n";
+    pyCode << "simOut = array([";
+    for(int i=0; i < runSize; i++) {
+        cout << res[i] << ",";
+        pyCode << res[i] << ",";
+    }
+    pyCode << "])\n";
+    cout << endl;
+    
+    
+    pyCode << toPyCode("testOut", testOut);
+    
+    pyCode << actsRecorder.dumpToPyCode();
+    
+    cout << "MSE: " << MSE<prec>::calc(res, testOut) << endl;
+    
+}
+
 int main(int argc, const char * argv[])
 {
     pyCode.open("/tmp/esn.py", ios_base::out);
-    sineWaveTest();
+    sineWaveTest2();
     pyCode.close();
     
     

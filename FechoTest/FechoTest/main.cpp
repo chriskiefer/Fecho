@@ -8,7 +8,7 @@ using namespace Fecho;
 ofstream pyCode;
 dSFMTRand mtrnd;
 
-typedef double prec;
+typedef float prec;
 
 //see http://books.nips.cc/papers/files/nips15/AA14.pdf
 void narma10(vector<float> &input, vector<float> &narma) {
@@ -23,7 +23,7 @@ void sineWaveTest() {
 
     ActivationFunctionTanh<prec> resAct;
     Reservoir<prec> net(0, 20, &resAct);
-    net.setInScale(0).setInShift(0).setNoise(0.000001);
+    net.setNoise(1e-6);
     
     MultiStreamRecorder<prec> actsRecorder;
     actsRecorder.setChannels(net.getNRes());
@@ -35,9 +35,9 @@ void sineWaveTest() {
     try {
         Initialiser<prec> netInit;
         netInit.setResRangeLow(-0.5).setResRangeHigh(0.5).setResConnectivity(0.1)
-        .setSpectralRadius(0.9)
-        .setInConnectivity(0.0).setInRangeLow(-1).setInRangeHigh(1)
-        .setFbConnectivity(1.0).setFbRangeLow(-0.9).setFbRangeHigh(0.9)
+        .setSpectralRadius(0.1)
+        .setInConnectivity(0.0).setInRangeLow(0).setInRangeHigh(0)
+        .setFbConnectivity(0.5).setFbRangeLow(-0.01).setFbRangeHigh(0.02)
         .init(net, ro);
         net.dump();
     } catch (Initialiser<prec>::EVException e) {
@@ -113,12 +113,12 @@ void sineWaveTest() {
     
 }
 
-void sineWaveTest2() {
+void oscFBTest() {
     clock_t ts = clock();
     
     ActivationFunctionTanh<prec> resAct;
-    Reservoir<prec> net(0, 25, &resAct);
-    net.setInScale(0).setInShift(0).setNoise(1e-6);
+    Reservoir<prec> net(1, 25, &resAct);
+    net.setNoise(1e-6);
     
     MultiStreamRecorder<prec> actsRecorder;
     actsRecorder.setChannels(net.getNRes());
@@ -131,7 +131,7 @@ void sineWaveTest2() {
         Initialiser<prec> netInit;
         netInit.setResRangeLow(-1.0).setResRangeHigh(1.0).setResConnectivity(0.2)
         .setSpectralRadius(0.85)
-        .setInConnectivity(0.0).setInRangeLow(-1).setInRangeHigh(1)
+        .setInConnectivity(1.0).setInRangeLow(-1).setInRangeHigh(1)
         .setFbConnectivity(1.0).setFbRangeLow(-2.0).setFbRangeHigh(2.0)
         .init(net, ro);
         net.dump();
@@ -149,7 +149,7 @@ void sineWaveTest2() {
     vector<prec> trainIn, trainOut;
     int trainSize = 4000;
     int runSize = 200;
-    trainIn.resize(0);
+    trainIn.resize(trainSize,0);
     trainOut.resize(trainSize);
     vector<prec> testOut(runSize);
     
@@ -171,7 +171,8 @@ void sineWaveTest2() {
     vector<prec> res(runSize);
     //    net.resetStates();
     for(int i=0; i < runSize; i++) {
-        sim.simulate(&trainIn[0]);
+        prec valIn = sin(i);
+        sim.simulate(&valIn);
         res[i] = ro.getOutputs()[0];
         actsRecorder.addFrame(net.getActivations());
     }
@@ -207,7 +208,7 @@ void sineWaveTest2() {
 int main(int argc, const char * argv[])
 {
     pyCode.open("/tmp/esn.py", ios_base::out);
-    sineWaveTest2();
+    sineWaveTest();
     pyCode.close();
     
     

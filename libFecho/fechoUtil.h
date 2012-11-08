@@ -66,10 +66,10 @@ namespace Fecho {
     public:
         static T calc(vector<T> &seq1, vector<T> &seq2) {
             vector<T> diff(seq1.size());
-            Math::vsub(&seq1[0], 1, &seq2[0], 1, &diff[0], 1, seq1.size());
-            Math::vsq(&diff[0], 1, &diff[0], 1, diff.size());
+            Math::vecsub(&seq1[0], 1, &seq2[0], 1, &diff[0], 1, seq1.size());
+            Math::vecsq(&diff[0], 1, &diff[0], 1, diff.size());
             T mean;
-            Math::meanv(&diff[0], 1, &mean, diff.size());
+            Math::vecmean(&diff[0], 1, &mean, diff.size());
             return mean;
         }
     };

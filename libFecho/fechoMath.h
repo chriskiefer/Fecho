@@ -83,7 +83,7 @@ namespace Fecho {
         
         //FROM VDSP
         
-        static inline void mtrans(float *__vDSP_a,
+        static inline void mattrans(float *__vDSP_a,
                                   vDSP_Stride __vDSP_aStride,
                                   float *__vDSP_c,
                                   vDSP_Stride __vDSP_cStride,
@@ -91,7 +91,7 @@ namespace Fecho {
                                   vDSP_Length __vDSP_N) {
             vDSP_mtrans(__vDSP_a, __vDSP_aStride, __vDSP_c, __vDSP_cStride, __vDSP_M, __vDSP_N);
         }
-        static inline void mtrans(double *__vDSP_a,
+        static inline void mattrans(double *__vDSP_a,
                                   vDSP_Stride __vDSP_aStride,
                                   double *__vDSP_c,
                                   vDSP_Stride __vDSP_cStride,
@@ -100,7 +100,7 @@ namespace Fecho {
             vDSP_mtransD(__vDSP_a, __vDSP_aStride, __vDSP_c, __vDSP_cStride, __vDSP_M, __vDSP_N);
         }
         
-        static inline void mmul(float *       __vDSP_a,
+        static inline void matmul(float *       __vDSP_a,
                                      vDSP_Stride   __vDSP_aStride,
                                      float *       __vDSP_b,
                                      vDSP_Stride   __vDSP_bStride,
@@ -112,7 +112,7 @@ namespace Fecho {
             vDSP_mmul(__vDSP_a, __vDSP_aStride, __vDSP_b, __vDSP_bStride, __vDSP_c, __vDSP_cStride, __vDSP_M, __vDSP_N, __vDSP_P);
         }
         
-        static inline void mmul(double *      __vDSP_a,
+        static inline void matmul(double *      __vDSP_a,
                                           vDSP_Stride   __vDSP_aStride,
                                           double *      __vDSP_b,
                                           vDSP_Stride   __vDSP_bStride,
@@ -125,7 +125,7 @@ namespace Fecho {
             
         }
         
-        static inline void vadd(
+        static inline void vecadd(
                   const float   __vDSP_input1[],
                   vDSP_Stride   __vDSP_stride1,
                   const float   __vDSP_input2[],
@@ -136,7 +136,7 @@ namespace Fecho {
             vDSP_vadd(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_stride2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
         
-        static inline void vadd(const double   __vDSP_input1[],
+        static inline void vecadd(const double   __vDSP_input1[],
                                       vDSP_Stride    __vDSP_stride1,
                                       const double   __vDSP_input2[],
                                       vDSP_Stride    __vDSP_stride2,
@@ -146,7 +146,7 @@ namespace Fecho {
             vDSP_vaddD(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_stride2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
         
-        static inline void vsadd(float *       __vDSP_A,
+        static inline void vecsadd(float *       __vDSP_A,
                                  vDSP_Stride   __vDSP_I,
                                  float *       __vDSP_B,
                                  float *       __vDSP_C,
@@ -156,7 +156,7 @@ namespace Fecho {
             vDSP_vsadd(__vDSP_A, __vDSP_I, __vDSP_B, __vDSP_C, __vDSP_K, __vDSP_N);
         }
         
-        static inline void vsadd(double *       __vDSP_A,
+        static inline void vecsadd(double *       __vDSP_A,
                                  vDSP_Stride   __vDSP_I,
                                  double *       __vDSP_B,
                                  double *       __vDSP_C,
@@ -166,7 +166,7 @@ namespace Fecho {
             vDSP_vsaddD(__vDSP_A, __vDSP_I, __vDSP_B, __vDSP_C, __vDSP_K, __vDSP_N);
         }
         
-        static inline void vsmul(const float    __vDSP_input1[],
+        static inline void vecsmul(const float    __vDSP_input1[],
                                  vDSP_Stride    __vDSP_stride1,
                                  const float *  __vDSP_input2,
                                  float          __vDSP_result[],
@@ -174,7 +174,7 @@ namespace Fecho {
                                  vDSP_Length    __vDSP_size) {
             vDSP_vsmul(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
-        static inline void vsmul(const double    __vDSP_input1[],
+        static inline void vecsmul(const double    __vDSP_input1[],
                                  vDSP_Stride     __vDSP_stride1,
                                  const double *  __vDSP_input2,
                                  double          __vDSP_result[],
@@ -183,7 +183,7 @@ namespace Fecho {
             vDSP_vsmulD(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
         
-        static inline void vsma(const float *  __vDSP_A,
+        static inline void vecsma(const float *  __vDSP_A,
                                 vDSP_Stride    __vDSP_I,
                                 const float *  __vDSP_B,
                                 const float *  __vDSP_C,
@@ -194,7 +194,7 @@ namespace Fecho {
             vDSP_vsma(__vDSP_A, __vDSP_I, __vDSP_B, __vDSP_C, __vDSP_K, __vDSP_D, __vDSP_L, __vDSP_N);
         }
 
-        static inline void vsma(const double *  __vDSP_A,
+        static inline void vecsma(const double *  __vDSP_A,
                                 vDSP_Stride     __vDSP_I,
                                 const double *  __vDSP_B,
                                 const double *  __vDSP_C,
@@ -205,7 +205,7 @@ namespace Fecho {
             vDSP_vsmaD(__vDSP_A, __vDSP_I, __vDSP_B, __vDSP_C, __vDSP_K, __vDSP_D, __vDSP_L, __vDSP_N);
         }
         
-        static inline void vsub(const float   __vDSP_input1[],
+        static inline void vecsub(const float   __vDSP_input1[],
                                 vDSP_Stride   __vDSP_stride1,
                                 const float   __vDSP_input2[],
                                 vDSP_Stride   __vDSP_stride2,
@@ -215,7 +215,7 @@ namespace Fecho {
             vDSP_vsub(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_stride2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
 
-        static inline void vsub(const double   __vDSP_input1[],
+        static inline void vecsub(const double   __vDSP_input1[],
                                 vDSP_Stride    __vDSP_stride1,
                                 const double   __vDSP_input2[],
                                 vDSP_Stride    __vDSP_stride2,
@@ -225,7 +225,7 @@ namespace Fecho {
             vDSP_vsubD(__vDSP_input1, __vDSP_stride1, __vDSP_input2, __vDSP_stride2, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
         
-        static inline void vsq(const float   __vDSP_input[],
+        static inline void vecsq(const float   __vDSP_input[],
                                vDSP_Stride   __vDSP_strideInput,
                                float         __vDSP_result[],
                                vDSP_Stride   __vDSP_strideResult,
@@ -233,7 +233,7 @@ namespace Fecho {
             vDSP_vsq(__vDSP_input, __vDSP_strideInput, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
 
-        static inline void vsq(const double   __vDSP_input[],
+        static inline void vecsq(const double   __vDSP_input[],
                                vDSP_Stride    __vDSP_strideInput,
                                double         __vDSP_result[],
                                vDSP_Stride    __vDSP_strideResult,
@@ -241,18 +241,29 @@ namespace Fecho {
             vDSP_vsqD(__vDSP_input, __vDSP_strideInput, __vDSP_result, __vDSP_strideResult, __vDSP_size);
         }
         
-        static inline void meanv(float *       __vDSP_A,
+        static inline void vecmean(float *       __vDSP_A,
                                  vDSP_Stride   __vDSP_I,
                                  float *       __vDSP_C,
                                  vDSP_Length   __vDSP_N) {
             vDSP_meanv(__vDSP_A, __vDSP_I, __vDSP_C, __vDSP_N);
         }
 
-        static inline void meanv(double *      __vDSP_A,
+        static inline void vecmean(double *      __vDSP_A,
                                  vDSP_Stride   __vDSP_I,
                                  double *      __vDSP_C,
                                  vDSP_Length   __vDSP_N) {
             vDSP_meanvD(__vDSP_A, __vDSP_I, __vDSP_C, __vDSP_N);
+        }
+        
+        static inline void vecclr(float *       __vDSP_C,
+                                vDSP_Stride   __vDSP_K,
+                                vDSP_Length   __vDSP_N) {
+            vDSP_vclr(__vDSP_C, __vDSP_K, __vDSP_N);
+        }
+        static inline void vecclr(double *       __vDSP_C,
+                                vDSP_Stride   __vDSP_K,
+                                vDSP_Length   __vDSP_N) {
+            vDSP_vclrD(__vDSP_C, __vDSP_K, __vDSP_N);
         }
 
         

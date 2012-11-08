@@ -26,7 +26,11 @@ namespace Fecho {
     template<typename T> 
     class Reservoir {
     public:
+        Reservoir() {}
         Reservoir(const uint inputSize, const uint reservoirSize, ActivationFunctionBase<T> *_act) {
+            init(inputSize, reservoirSize, _act);
+        }
+        void init(const uint inputSize, const uint reservoirSize, ActivationFunctionBase<T> *_act) {
             x.resize(reservoirSize, 0);
             inWeights.resize(reservoirSize * inputSize, 0);
             resWeights.resize(reservoirSize * reservoirSize, 0);
@@ -34,13 +38,9 @@ namespace Fecho {
             nRes = reservoirSize;
             nIns = inputSize;
             act = _act;
-            inScale = 1.0;
-            inShift = 0.0;
             noise=0;
         }
         
-        inline Reservoir& setInScale(T val) {inScale = val; return *this;}
-        inline Reservoir& setInShift(T val) {inShift = val; return *this;}
         inline Reservoir& setNoise(T val) {noise = val; return *this;}
         
         inline vector<T> &getActivations() {return x;}
@@ -63,25 +63,22 @@ namespace Fecho {
         void resetStates() {
             std::fill(x.begin(), x.end(), 0);
         }
-        inline T* getInShift(){return &inShift;}
-        inline T* getInScale(){return &inScale;}
         inline T getNoise(){return noise;}
     protected:
     private:
-        Reservoir() {}
         vector<T> x; //activations
         vector<T> inWeights; //input weights 
         vector<T> resWeights; //reservoir weights
         vector<T> inputs; //input values
         uint nRes, nIns;
         ActivationFunctionBase<T> *act;        
-        T inScale, inShift;
         T noise;
     };
 
     template<typename T>
     class ReadOut {
     public:
+        ReadOut() {}
         //all matrices in row major format
         ReadOut(Reservoir<T> &_res, const uint _size, ActivationFunctionBase<T> *_act) : size(_size) {
             res = &_res;
@@ -95,14 +92,16 @@ namespace Fecho {
         }
         
         inline void update() {
+            Math::vecclr(&outputs[0], 0, outputs.size());
             //multiply output weights by [input;x]
             //separate into two multiplications - res weights and inputs, then sum
-            Math::mmul(&weightsRes[0], 1, &res->getActivations()[0], 1, &outputs[0], 1, size, 1, res->getNRes());
+            Math::matmul(&weightsRes[0], 1, &res->getActivations()[0], 1, &outputs[0], 1, size, 1, res->getNRes());
 //            debugArray<T>("upres", &weightsRes[0], weightsRes.size());
+//            debugArray<T>("upin", &weightsIn[0], weightsIn.size());
 //            debugArray<T>("act", &res->getActivations()[0], res->getNRes());
             if(res->getNIns() > 0 && mapInsToOuts) {
-                Math::mmul(&weightsIn[0], 1, &res->getInputs()[0], 1, &outputsFromIns[0], 1, size, 1, res->getNIns());
-                Math::vadd(&outputs[0], 1, &outputsFromIns[0], 1, &outputs[0], 1, size);
+                Math::matmul(&weightsIn[0], 1, &res->getInputs()[0], 1, &outputsFromIns[0], 1, size, 1, res->getNIns());
+                Math::vecadd(&outputs[0], 1, &outputsFromIns[0], 1, &outputs[0], 1, size);
             }
             act->process(&outputs[0], size);
 //            debugArray<T>("op", &outputs[0], outputs.size());
@@ -115,6 +114,7 @@ namespace Fecho {
             //copy forced outputs to actual outputs
             memcpy(&outputs[0], forcedValues, sizeof(T) * size);
             act->process(&outputs[0], size);
+//            debugArray<T>("TFop", &outputs[0], size);
         }
         
 //        inline T* getOutputWeights() {return outs;}
@@ -245,6 +245,7 @@ namespace Fecho {
     template <typename T>
     class Simulator {
     public:
+        Simulator() {}
         Simulator(Reservoir<T> &_net, ReadOut<T> &_ro) {
             net = &_net;
             ro = &_ro;
@@ -275,36 +276,35 @@ namespace Fecho {
                     noiseVect[i] = rand.randUF();
                 T shift = -0.5;
                 //shift range -0.5 < x < 0.5
-                Math::vsadd(&noiseVect[0], 1, &shift, &noiseVect[0], 1, noiseVect.size());
+                Math::vecsadd(&noiseVect[0], 1, &shift, &noiseVect[0], 1, noiseVect.size());
                 //scale and add to x
-                Math::vsma(&noiseVect[0], 1, &twiceNoise, x, 1, x, 1, net->getNRes());
+                Math::vecsma(&noiseVect[0], 1, &twiceNoise, x, 1, x, 1, net->getNRes());
             }
             
             //res weights * x
-            Math::mmul(res, 1, x, 1, &WxX[0], 1, net->getNRes(), 1, net->getNRes());
+            Math::matmul(res, 1, x, 1, &WxX[0], 1, net->getNRes(), 1, net->getNRes());
             
             if (net->getNIns() > 0) {
-                //scale and shift inputs
-                Math::vsmul(inputs, 1, net->getInScale(), &inputsSS[0], 1, net->getNIns());
-                Math::vsadd(&inputsSS[0], 1, net->getInShift(), &inputsSS[0], 1, net->getNIns());
-                
                 //ins * inputs
-                Math::mmul(ins, 1, inputs, 1, &WinxU[0], 1, net->getNRes(), 1, net->getNIns());
+                Math::matmul(ins, 1, inputs, 1, &WinxU[0], 1, net->getNRes(), 1, net->getNIns());
                 //add together
-                Math::vadd(&WxX[0], 1, &WinxU[0], 1, x, 1, net->getNRes());
+                Math::vecadd(&WxX[0], 1, &WinxU[0], 1, x, 1, net->getNRes());
 
             }else{
                 memcpy(x, &WxX[0], sizeof(T) * net->getNRes());
             }
 
             //outs * fb
-            Math::mmul(&ro->getFbWeights()[0], 1, &ro->getOutputs()[0], 1, &WxY[0], 1, net->getNRes(), 1, ro->getSize());
+            Math::matmul(&ro->getFbWeights()[0], 1, &ro->getOutputs()[0], 1, &WxY[0], 1, net->getNRes(), 1, ro->getSize());
+//            debugArray<T>("FB:", &ro->getFbWeights()[0], net->getNRes() * ro->getSize()); 
+//            debugArray<T>("op:", &ro->getOutputs()[0], ro->getSize()); 
+//            debugArray<T>("WxY:", &WxY[0], WxY.size()); 
             //add together
-            Math::vadd(&WxY[0], 1, x, 1, x, 1, net->getNRes());
+            Math::vecadd(&WxY[0], 1, x, 1, x, 1, net->getNRes());
             
             //activation function
             net->getActivationFunction()->process(x, net->getNRes());
-            //        debugArray<float>("Act:", x, net->getNRes()); 
+//            debugArray<T>("Act:", x, net->getNRes()); 
             
         }
         inline Reservoir<T>* getRes() {return net;}
@@ -332,15 +332,16 @@ namespace Fecho {
     template <typename T>
     class SimulatorLI : public Simulator<T> {
     public:
+        SimulatorLI() {}
         SimulatorLI(Reservoir<T> &_net, ReadOut<T> &_ro, T leakRate) : Simulator<T>(_net, _ro), alpha(1-leakRate) {
             leakyX.resize(_net.getNRes(),0);
         }
         
         inline void simulate(T *inputs) {
             //(1-alpha)Xn
-            Math::vsmul(this->x, 1, &alpha, &leakyX[0], 1, this->net->getNRes());
+            Math::vecsmul(this->x, 1, &alpha, &leakyX[0], 1, this->net->getNRes());
             this->simulateOneEpoch(inputs);
-            Math::vadd(this->x, 1, &leakyX[0], 1, this->x, 1, this->net->getNRes());
+            Math::vecadd(this->x, 1, &leakyX[0], 1, this->x, 1, this->net->getNRes());
             this->ro->update();
         }
         
@@ -433,6 +434,8 @@ namespace Fecho {
                     }
                 }
                 Math::colMajorToRowMajor<T>(&result[0], nrhs, stateSize, &solvedWeights[0]);
+                vector<T> solvedWeightsTemp = solvedWeights;
+                Math::mattrans(&solvedWeightsTemp[0], 1, &solvedWeights[0], 1, ro->getSize(), stateSize);
             }
         }
         
@@ -469,8 +472,8 @@ namespace Fecho {
             __CLPK_integer lwork = -1;
             T wkopt;
             __CLPK_integer info;
-            //            debugArray<T>("ext", &extStatesCM[0], extStatesCM.size());
-            //            debugArray<T>("des", &desOutsCM[0], desOutsCM.size());
+//            debugArray<T>("ext", &extStatesCM[0], extStatesCM.size());
+//            debugArray<T>("des", &desOutsCM[0], desOutsCM.size());
             vector<T> s(min(m,n));
             T rcond = -1;
             __CLPK_integer rank;
@@ -491,6 +494,8 @@ namespace Fecho {
                     }
                 }
                 Math::colMajorToRowMajor<T>(&result[0], nrhs, this->stateSize, &this->solvedWeights[0]);
+                vector<T> solvedWeightsTemp = this->solvedWeights;
+                Math::mattrans(&solvedWeightsTemp[0], 1, &this->solvedWeights[0], 1, this->ro->getSize(), this->stateSize);
             }
         }
     };

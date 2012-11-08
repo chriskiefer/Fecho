@@ -10,7 +10,7 @@
 		83884D57163F2B2500CD785F /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 83884D56163F2B2500CD785F /* main.cpp */; };
 		83884D59163F2B2500CD785F /* FechoTest.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 83884D58163F2B2500CD785F /* FechoTest.1 */; };
 		83884D62163F2C0000CD785F /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 83884D61163F2C0000CD785F /* Accelerate.framework */; };
-		83884D80163F2E5900CD785F /* libFecho.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 83884D7F163F2E5900CD785F /* libFecho.a */; };
+		83D2E155164B137E001238B3 /* libFecho.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 83D2E154164B137E001238B3 /* libFecho.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -31,7 +31,7 @@
 		83884D56163F2B2500CD785F /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		83884D58163F2B2500CD785F /* FechoTest.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = FechoTest.1; sourceTree = "<group>"; };
 		83884D61163F2C0000CD785F /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
-		83884D7F163F2E5900CD785F /* libFecho.a */ = {isa = PBXFileReference; lastKnownFileType = file; name = libFecho.a; path = ../libFecho/build/Release/libFecho.a; sourceTree = "<group>"; };
+		83D2E154164B137E001238B3 /* libFecho.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libFecho.a; path = "../../../Library/Developer/Xcode/DerivedData/Fecho-dzwxrvtghesljdfdqtjhxqchuqhv/Build/Products/Debug/libFecho.a"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,7 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				83884D80163F2E5900CD785F /* libFecho.a in Frameworks */,
+				83D2E155164B137E001238B3 /* libFecho.a in Frameworks */,
 				83884D62163F2C0000CD785F /* Accelerate.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -50,7 +50,7 @@
 		83884D47163F2B2500CD785F = {
 			isa = PBXGroup;
 			children = (
-				83884D7F163F2E5900CD785F /* libFecho.a */,
+				83D2E154164B137E001238B3 /* libFecho.a */,
 				83884D61163F2C0000CD785F /* Accelerate.framework */,
 				83884D55163F2B2500CD785F /* FechoTest */,
 				83884D53163F2B2500CD785F /* Products */,
@@ -182,6 +182,10 @@
 		83884D5D163F2B2500CD785F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../../Library/Developer/Xcode/DerivedData/Fecho-dzwxrvtghesljdfdqtjhxqchuqhv/Build/Products/Debug\"",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -189,6 +193,10 @@
 		83884D5E163F2B2500CD785F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../../Library/Developer/Xcode/DerivedData/Fecho-dzwxrvtghesljdfdqtjhxqchuqhv/Build/Products/Debug\"",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

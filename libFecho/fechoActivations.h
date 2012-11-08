@@ -49,7 +49,7 @@ namespace Fecho {
 #else
             Math::vforceexp(x, x, &size);
             T one = 1.0f;
-            Math::vsadd(x, 1, &one, x, 1, size);
+            Math::vecsadd(x, 1, &one, x, 1, size);
             Math::vforcerec(x, x, &size);
 #endif
         }
@@ -59,7 +59,7 @@ namespace Fecho {
 #else
             Math::vforcerec(x, x, &size);
             T minusone = -1.0f;
-            Math::vsadd(x, 1, &minusone, x, 1, size);
+            Math::vecsadd(x, 1, &minusone, x, 1, size);
             Math::vforcelog(x, x, &size);
 #endif
         }

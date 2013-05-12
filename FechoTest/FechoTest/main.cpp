@@ -8,15 +8,8 @@ using namespace Fecho;
 ofstream pyCode;
 dSFMTRand mtrnd;
 
-typedef float prec;
+typedef double prec;
 
-//see http://books.nips.cc/papers/files/nips15/AA14.pdf
-void narma10(vector<float> &input, vector<float> &narma) {
-    narma.resize(input.size());
-    for(int i=10; i < narma.size(); i++) {
-        narma[i] = 0.3*narma[i-1] + 0.05*narma[i-1]*(narma[i-1]+narma[i-2]+narma[i-3]+narma[i-4]+narma[i-5]+narma[i-6]+narma[i-7]+narma[i-8]+narma[i-9]+narma[i-10]) + 1.5*input[i-10]*input[i-1] + 0.1;
-    }
-}
 
 void sineWaveTest() {
     clock_t ts = clock();
@@ -28,16 +21,16 @@ void sineWaveTest() {
     MultiStreamRecorder<prec> actsRecorder;
     actsRecorder.setChannels(net.getNRes());
     
-    ActivationFunctionLinear<prec> roAct;
+    ActivationFunctionTanh<prec> roAct;
     ReadOut<prec> ro(net, 1, &roAct);
     ro.setMapInsToOuts(true);
     
     try {
         Initialiser<prec> netInit;
-        netInit.setResRangeLow(-0.5).setResRangeHigh(0.5).setResConnectivity(0.1)
-        .setSpectralRadius(0.1)
+        netInit.setResRangeLow(-0.1).setResRangeHigh(0.1).setResConnectivity(0.2)
+        .setSpectralRadius(0.4)
         .setInConnectivity(0.0).setInRangeLow(0).setInRangeHigh(0)
-        .setFbConnectivity(0.5).setFbRangeLow(-0.01).setFbRangeHigh(0.02)
+        .setFbConnectivity(1.0).setFbRangeLow(-1).setFbRangeHigh(1)
         .init(net, ro);
         net.dump();
     } catch (Initialiser<prec>::EVException e) {
@@ -46,30 +39,27 @@ void sineWaveTest() {
     
     
     
-//    SimulatorLI<float> sim(net, ro, 0.9);
+//    SimulatorLI<prec> sim(net, ro, 0.9);
     Simulator<prec> sim(net, ro);
     
     vector<prec> ins;
-    ins.push_back(1.0);
+    ins.push_back(0);
     
     vector<prec> trainIn, trainOut;
     int trainSize = 300;
     int runSize = 50;
     trainIn.resize(0);
     trainOut.resize(trainSize);
-    vector<prec> testOut(runSize);
 
     vector<prec> sig(trainSize + runSize);
-    
     for(int i=0; i < sig.size(); i++) {
-        prec r = 0.5 *sin(i/4.0);
-        //or something more complex...
-//        float r = (0.5 *sin(i/4.0)) + (0.1 * sin(i/7.0)) + (0.3 *sin(i));
-//        r = pow(r,3);
+        prec r = (0.5 *sin(i/4.0));
         sig[i] = r;
     }
     
     std::copy(sig.begin(), sig.begin() + trainSize, trainOut.begin());
+
+    vector<prec> testOut(runSize);
     std::copy(sig.begin() + trainSize, sig.end(), testOut.begin());
     
     TrainerPseudoInverse<prec> tr(&sim, &ro, trainIn, trainOut, trainSize, 100);
@@ -78,7 +68,8 @@ void sineWaveTest() {
     
     cout << "Running trained ESN\n";
     vector<prec> res(runSize);
-//    net.resetStates();
+    //net.setNoise(0);
+   // net.resetStates();
     for(int i=0; i < runSize; i++) {
         sim.simulate(&trainIn[0]);
         res[i] = ro.getOutputs()[0];
@@ -113,97 +104,6 @@ void sineWaveTest() {
     
 }
 
-void oscFBTest() {
-    clock_t ts = clock();
-    
-    ActivationFunctionTanh<prec> resAct;
-    Reservoir<prec> net(1, 25, &resAct);
-    net.setNoise(1e-6);
-    
-    MultiStreamRecorder<prec> actsRecorder;
-    actsRecorder.setChannels(net.getNRes());
-    
-    ActivationFunctionLinear<prec> roAct;
-    ReadOut<prec> ro(net, 1, &roAct);
-    ro.setMapInsToOuts(true);
-    
-    try {
-        Initialiser<prec> netInit;
-        netInit.setResRangeLow(-1.0).setResRangeHigh(1.0).setResConnectivity(0.2)
-        .setSpectralRadius(0.85)
-        .setInConnectivity(1.0).setInRangeLow(-1).setInRangeHigh(1)
-        .setFbConnectivity(1.0).setFbRangeLow(-2.0).setFbRangeHigh(2.0)
-        .init(net, ro);
-        net.dump();
-    } catch (Initialiser<prec>::EVException e) {
-        cout << e.what() << endl;
-    }
-    
-    
-    
-    SimulatorLI<prec> sim(net, ro, 0.9);
-    
-    vector<prec> ins;
-    ins.push_back(1.0);
-    
-    vector<prec> trainIn, trainOut;
-    int trainSize = 4000;
-    int runSize = 200;
-    trainIn.resize(trainSize,0);
-    trainOut.resize(trainSize);
-    vector<prec> testOut(runSize);
-    
-    vector<prec> sig(trainSize + runSize);
-    
-    for(int i=0; i < sig.size(); i++) {
-        prec r = sin(i/150.0) + sin(i/13.0);
-        sig[i] = r;
-    }
-    
-    std::copy(sig.begin(), sig.begin() + trainSize, trainOut.begin());
-    std::copy(sig.begin() + trainSize, sig.end(), testOut.begin());
-    
-    TrainerPseudoInverse<prec> tr(&sim, &ro, trainIn, trainOut, trainSize, 2000);
-    cout << "Training...\n";
-    tr.train();
-    
-    cout << "Running trained ESN\n";
-    vector<prec> res(runSize);
-    //    net.resetStates();
-    for(int i=0; i < runSize; i++) {
-        prec valIn = sin(i);
-        sim.simulate(&valIn);
-        res[i] = ro.getOutputs()[0];
-        actsRecorder.addFrame(net.getActivations());
-    }
-    
-    cout << "processed in " << ((clock() - ts) / (double) CLOCKS_PER_SEC) << " secs\n";
-    
-    pyCode << "simIn = array([";
-    //    for(int i=0; i < runSize; i++) {
-    //        cout << trainIn[i] << ",";
-    //        pyCode << trainIn[i] << ",";
-    //    }
-    //    cout << endl;
-    pyCode << "])\n";
-    
-    cout << "Result: \n";
-    pyCode << "simOut = array([";
-    for(int i=0; i < runSize; i++) {
-        cout << res[i] << ",";
-        pyCode << res[i] << ",";
-    }
-    pyCode << "])\n";
-    cout << endl;
-    
-    
-    pyCode << toPyCode("testOut", testOut);
-    
-    pyCode << actsRecorder.dumpToPyCode();
-    
-    cout << "MSE: " << MSE<prec>::calc(res, testOut) << endl;
-    
-}
 
 int main(int argc, const char * argv[])
 {

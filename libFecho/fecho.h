@@ -321,11 +321,11 @@ namespace Fecho {
     };
     
     template<> inline void Simulator<double>::randArray(vector<double> &vals) {
-        rand.randArray(&vals[0], vals.size());
+        rand.randArray(&vals[0], (int) vals.size());
     }
 
     template<> inline void Simulator<float>::randArray(vector<float> &vals) {
-        rand.randArray(&noiseBuffer[0], vals.size());
+        rand.randArray(&noiseBuffer[0], (int) vals.size());
         vDSP_vdpsp(&noiseBuffer[0], 1, &vals[0], 1, vals.size());
     }
 

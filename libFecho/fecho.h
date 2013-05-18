@@ -11,6 +11,8 @@
 #include "fechoMath.h"
 #include "fechoUtil.h"
 
+#include <armadillo>
+
 using namespace std;
 
 namespace Fecho {

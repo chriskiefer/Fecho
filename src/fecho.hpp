@@ -134,7 +134,7 @@ namespace Fecho {
             //split into two matrices for res and inputs
             weightsRes = trans(newWeights.rows(0, res->getNRes()-1));
             if (mapInsToOuts)
-                weightsIn = trans(newWeights.rows(res->getNRes(), res->getNIns()));
+                weightsIn = trans(newWeights.rows(res->getNRes(), res->getNRes() + res->getNIns() - 1));
         }
         
         void dump() {
@@ -332,7 +332,7 @@ namespace Fecho {
          *  ...
          
          */
-        TrainerLeastSquares(Simulator<T> *_sim, ReadOut<T> *_rOut, Mat<T> &inputsMatrix, Mat<T> &desiredOutputsMatrix, uint trainDataCount, const uint _washout) : sim(_sim), ro(_rOut), trainSize(trainDataCount), washout(_washout) {
+        TrainerLeastSquares(Simulator<T> *_sim, ReadOut<T> *_rOut, Mat<T> &inputsMatrix, Mat<T> &desiredOutputsMatrix, const uint _washout) : sim(_sim), ro(_rOut), trainSize(desiredOutputsMatrix.n_rows), washout(_washout) {
             inputData = &inputsMatrix;
             outputData = &desiredOutputsMatrix;
             stateSize = sim->getRes()->getNRes();
@@ -345,29 +345,34 @@ namespace Fecho {
         void train() {
             int inputIdx=0;
             //run to washout
-            for(int i=0; i < trainSize; i++) {
-                sim->simulate(trans(inputData->row(inputIdx)));
-                if (sim->getRes()->isFeedbackOn())
-                    ro->teacherForce(trans(outputData->row(inputIdx)));
+            for(int i=0; i < washout; i++) {
+                Col<T> dataIn = trans(inputData->row(inputIdx));
+                sim->simulate(dataIn);
+                if (sim->getRes()->isFeedbackOn()) {
+                    Col<T> fbData = trans(outputData->row(inputIdx));
+                    ro->teacherForce(fbData);
+                }
                 inputIdx++;
             }
             //harvest states
             for(int i=0; i < collectedStatesCount; i++) {
                 //run an iteration of the system
-                sim->simulate(trans(inputData->row(inputIdx)));
+                Col<T> dataIn = trans(inputData->row(inputIdx));
+                sim->simulate(dataIn);
                 if (sim->getRes()->isFeedbackOn())
                     ro->teacherForce(trans(outputData->row(inputIdx)));
                 
                 //copy states
-                extStates(i, span(0,sim->getRes()->getNRes())) = trans(sim->getRes()->getActivations());
+                extStates(i, span(0,sim->getRes()->getNRes() - 1)) = trans(sim->getRes()->getActivations());
                 if (ro->insAreMappedToOuts()) {
-                    extStates(i, span(sim->getRes()->getNRes(), sim->getRes()->getNRes() + sim->getRes()->getNIns())) = trans(sim->getRes()->getInputs());
+                    extStates(i, span(sim->getRes()->getNRes(), sim->getRes()->getNRes() + sim->getRes()->getNIns() - 1)) = trans(sim->getRes()->getInputs());
                 }
-                //inverse-activate desired outs
-                ro->getActivationFunction()->invProcess(outputData->row(inputIdx));
                 inputIdx++;
             }
             
+            //inverse-activate desired outs
+            outputDataInv = outputData->rows(washout, outputData->n_rows-1);
+            ro->getActivationFunction()->invProcess(outputDataInv);
             solvedWeights.set_size(stateSize, ro->getSize());
             solveOutputWeights();
             ro->setOutputWeights(solvedWeights);
@@ -375,7 +380,7 @@ namespace Fecho {
 
         virtual void solveOutputWeights() {
             
-            solvedWeights = solve(extStates, outputData->rows(washout, outputData->n_cols-1));
+            solvedWeights = solve(extStates, outputDataInv);
             
 //            if (info > 0) {
 //                throw(TrainingException());
@@ -392,54 +397,20 @@ namespace Fecho {
         ReadOut<T> * ro;
         int stateSize;
         Mat<T> solvedWeights;
+        Mat<T> outputDataInv;
     };
     
-//    template<typename T>
-//    class TrainerPseudoInverse : public TrainerLeastSquares<T> {
-//    public:
-//        TrainerPseudoInverse(Simulator<T> *_sim, ReadOut<T> *_rOut, vector<T> &inputsMatrix, vector<T> &desiredOutputsMatrix, uint trainDataCount, const uint _washout) : TrainerLeastSquares<T>(_sim, _rOut, inputsMatrix, desiredOutputsMatrix, trainDataCount, _washout) {
-//            
-//        }
-//
-//        void solveOutputWeights() {
-//            //transpose to col major for clapack
-//            vector<T> extStatesCM(this->extStates.size());
-//            vector<T> desOutsCM(this->collectedStatesCount * this->ro->getSize());
-//            Math::rowMajorToColMajor(&this->extStates[0], this->stateSize, this->collectedStatesCount, &extStatesCM[0]);
-//            Math::rowMajorToColMajor(this->outputData + (this->washout * this->ro->getSize()), this->ro->getSize(), this->collectedStatesCount, &desOutsCM[0]);
-//            __CLPK_integer m=this->collectedStatesCount;
-//            __CLPK_integer n=this->stateSize;
-//            __CLPK_integer nrhs = this->ro->getSize();
-//            __CLPK_integer lwork = -1;
-//            T wkopt;
-//            __CLPK_integer info;
-////            debugArray<T>("ext", &extStatesCM[0], extStatesCM.size());
-////            debugArray<T>("des", &desOutsCM[0], desOutsCM.size());
-//            vector<T> s(min(m,n));
-//            T rcond = -1;
-//            __CLPK_integer rank;
-//            lwork = -1;
-//            Math::gelss(&m, &n, &nrhs, &extStatesCM[0], &m, &desOutsCM[0], &m, &s[0], &rcond, &rank, &wkopt, &lwork, &info);
-//            lwork = (int)wkopt;
-//            vector<T> work2(lwork);
-//            Math::gelss(&m, &n, &nrhs, &extStatesCM[0], &m, &desOutsCM[0], &m, &s[0], &rcond, &rank, &work2[0], &lwork, &info);
-//            cout << "info: " << info << endl;
-//            if(info > 0) {
-//                throw(TrainingException());
-//            }else{
-//    //            debugArray<T>("Result:", &desOutsCM[0], desOutsCM.size());
-//                vector<T> result(nrhs * n);
-//                for(int i=0; i < nrhs; i++) {
-//                    for(int j=0; j < n; j++) {
-//                        result[(i*n) + j] = desOutsCM[(i*m) + j];
-//                    }
-//                }
-//                Math::colMajorToRowMajor<T>(&result[0], nrhs, this->stateSize, &this->solvedWeights[0]);
-//                vector<T> solvedWeightsTemp = this->solvedWeights;
-//                Math::mattrans(&solvedWeightsTemp[0], 1, &this->solvedWeights[0], 1, this->ro->getSize(), this->stateSize);
-//            }
-//        }
-//    };
+    template<typename T>
+    class TrainerPseudoInverse : public TrainerLeastSquares<T> {
+    public:
+        TrainerPseudoInverse(Simulator<T> *_sim, ReadOut<T> *_rOut, Mat<T> &inputsMatrix, Mat<T> &desiredOutputsMatrix, const uint _washout) : TrainerLeastSquares<T>(_sim, _rOut, inputsMatrix, desiredOutputsMatrix, _washout) {
+            
+        }
+
+        void solveOutputWeights() {
+            this->solvedWeights = pinv(this->extStates) * this->outputDataInv;
+        }
+    };
     
 
 

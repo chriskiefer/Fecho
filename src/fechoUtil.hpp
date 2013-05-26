@@ -61,6 +61,20 @@ namespace Fecho {
         return s.str();
     }
 
+    template<typename T>
+    std::string toPyCode(std::string name, arma::Mat<T> &x) {
+        std::stringstream s;
+        for(int i=0; i < x.n_rows; i++) {
+            s << name << i << " = array([";
+            for(int j=0; j < x.n_cols; j++) {
+                s << x(i,j) << ",";
+            }
+            s << "])\n";
+            
+        }
+        return s.str();
+    }
+
 //    template<typename T>
 //    class MSE {
 //    public:

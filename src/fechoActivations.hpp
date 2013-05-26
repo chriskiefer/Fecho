@@ -11,14 +11,14 @@ namespace Fecho {
     public:
         ActivationFunctionBase() {}
         virtual void process(Col<T> &x) {};
-        virtual void invProcess(Row<T> &x) {};
+        virtual void invProcess(Mat<T> &x) {};
     };
     
     template <typename T>
     class ActivationFunctionLinear : public ActivationFunctionBase<T> {
     public:
         inline void process(Col<T> &x) {};
-        inline void invProcess(Row<T> &x) {};
+        inline void invProcess(Mat<T> &x) {};
     };
     
     
@@ -28,7 +28,7 @@ namespace Fecho {
         inline void process(Col<T> &x) {
             x = tanh(x);
         };
-        inline void invProcess(Row<T> &x) {
+        inline void invProcess(Mat<T> &x) {
             x = atanh(x);
         };
     };
@@ -41,7 +41,7 @@ namespace Fecho {
             x = 1.0 / (1.0 + exp(x));
             
         }
-        inline void invProcess(Row<T> &x) {
+        inline void invProcess(Mat<T> &x) {
             x = log((1.0/x) - 1.0);
         }
     };

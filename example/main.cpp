@@ -6,6 +6,30 @@
 //  Copyright (c) 2013 Chris Kiefer. All rights reserved.
 //
 
+/*
+ output from these examples is written into a python script for further exploration.
+ 
+ try the following ipython notebook code after running this
+ 
+ run -i '/tmp/esn.py'
+
+ 
+ #view activation
+ figsize(20,6)
+ for seq in x:
+ plot(seq)
+ 
+ #view ins and outs
+ figsize(20,6)
+ plot(simIn0)
+ plot(simOut0)
+ plot(testOut0)
+ 
+ #spectrum
+ specgram(simOut0)[3]
+ 
+ */
+
 #include <iostream>
 #include "fecho.hpp"
 #include <Accelerate/Accelerate.h>

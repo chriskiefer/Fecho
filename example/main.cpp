@@ -17,7 +17,7 @@ ofstream pyCode;
 typedef double FECHOTYPE;
 
 void randomNetworkTest() {
-    //run a network with random weights, ignore the readout and observe the interal activations
+    //run a network with random weights, ignore the readout and observe the internal activations
     clock_t ts = clock();
     
     ActivationFunctionTanh<FECHOTYPE> resAct;
@@ -34,7 +34,7 @@ void randomNetworkTest() {
     try {
         Initialiser<FECHOTYPE> netInit;
         netInit.setResRangeLow(-0.1).setResRangeHigh(0.1).setResConnectivity(0.5)
-        .setSpectralRadius(1.1)
+        .setSpectralRadius(1.04)
         .setInConnectivity(0.0).setInRangeLow(0).setInRangeHigh(0)
         .setFbConnectivity(0.0).setFbRangeLow(-1).setFbRangeHigh(1)
         .init(net, ro);
@@ -45,21 +45,67 @@ void randomNetworkTest() {
     }
     Simulator<FECHOTYPE> sim(net, ro);
     
-    int runSize = 500;
+    int runSize = 5000;
     cout << "Running ESN\n";
     Col<FECHOTYPE> inputVec;
     inputVec.set_size(0);
-//    Col<FECHOTYPE> res(runSize);
-    //net.setNoise(0);
     // net.resetStates();
 //    net.randomiseStates();
     Col<FECHOTYPE> initStates;
     initStates.set_size(net.getNRes());
     initStates.fill(1.0);
     for(int i=0; i < runSize; i++) {
-        if (i % 50 == 0) {
-            net.setStates(initStates);
-        }
+        sim.simulate(inputVec);
+        actsRecorder.addFrame(net.getActivations());
+    }
+    
+    cout << "processed in " << ((clock() - ts) / (double) CLOCKS_PER_SEC) << " secs\n";
+    pyCode << actsRecorder.dumpToPyCode();
+    
+}
+
+
+void randomNetworkWithInputTest() {
+    //run a network with random weights, drive with periodic waveform, ignore the readout and observe the internal activations
+    clock_t ts = clock();
+    
+    ActivationFunctionTanh<FECHOTYPE> resAct;
+    Reservoir<FECHOTYPE> net(1, 50, &resAct);
+    //    net.setNoise(1e-6);
+    
+    MultiStreamRecorder<FECHOTYPE> actsRecorder;
+    actsRecorder.setChannels(net.getNRes());
+    
+    ActivationFunctionLinear<FECHOTYPE> roAct;
+    ReadOut<FECHOTYPE> ro(net, 1, &roAct);
+    ro.setMapInsToOuts(false);
+    
+    try {
+        Initialiser<FECHOTYPE> netInit;
+        netInit.setResRangeLow(-0.5).setResRangeHigh(0.5).setResConnectivity(0.4)
+        .setSpectralRadius(0.99)
+        .setInConnectivity(0.2).setInRangeLow(-0.1).setInRangeHigh(0.1)
+        .setFbConnectivity(0.0).setFbRangeLow(-1).setFbRangeHigh(1)
+        .init(net, ro);
+        net.dump();
+        ro.dump();
+    } catch (Initialiser<FECHOTYPE>::EVException e) {
+        cout << e.what() << endl;
+    }
+    Simulator<FECHOTYPE> sim(net, ro);
+    
+    int runSize = 5000;
+    cout << "Running ESN\n";
+    Col<FECHOTYPE> inputVec;
+    inputVec.set_size(1);
+    Col<FECHOTYPE> initStates;
+    initStates.set_size(net.getNRes());
+    initStates.fill(-1.0);
+//    net.randomiseActivations();
+    float freq = 70; //Hz
+    float period = 44100.0 / freq;
+    for(int i=0; i < runSize; i++) {
+        inputVec(0) = pow(sin(i * 3.14159268 * 2.0 / period), 1);
         sim.simulate(inputVec);
         actsRecorder.addFrame(net.getActivations());
     }
@@ -111,7 +157,6 @@ void nonLinearFunctionTest() {
     
     Mat<FECHOTYPE> trainIn = dataIn.rows(0, trainSize-1);
     Mat<FECHOTYPE> trainOut = dataOut.rows(0, trainSize-1);
-//    TrainerLeastSquares<FECHOTYPE> trainer(&sim, &ro, trainIn, trainOut, 100);
     TrainerPseudoInverse<FECHOTYPE> trainer(&sim, &ro, trainIn, trainOut, 100);
     trainer.train();
     
@@ -170,7 +215,7 @@ void sineWaveTest() {
     
     cout << "Training ESN";
     
-    int trainSize=4000, testSize = 8000;
+    int trainSize=4000, testSize = 20000;
     Mat<FECHOTYPE> dataIn, dataOut;
     dataIn.set_size(trainSize + testSize, 1);
     dataOut.set_size(trainSize + testSize, 1);
@@ -182,7 +227,6 @@ void sineWaveTest() {
     
     Mat<FECHOTYPE> trainIn = dataIn.rows(0, trainSize-1);
     Mat<FECHOTYPE> trainOut = dataOut.rows(0, trainSize-1);
-    //    TrainerLeastSquares<FECHOTYPE> trainer(&sim, &ro, trainIn, trainOut, 100);
     TrainerPseudoInverse<FECHOTYPE> trainer(&sim, &ro, trainIn, trainOut, 2000);
     trainer.train();
     
@@ -213,6 +257,7 @@ void sineWaveTest() {
 }
 
 
+
 int main(int argc, const char * argv[])
 {
     srand((unsigned int)time(NULL));
@@ -221,6 +266,7 @@ int main(int argc, const char * argv[])
 
     pyCode.open("/tmp/esn.py", ios_base::out);
 //    randomNetworkTest();
+//    randomNetworkWithInputTest();
 //    nonLinearFunctionTest();
     sineWaveTest();
     pyCode.close();

@@ -4,7 +4,6 @@
 #include <iostream>
 #include <sys/types.h>
 #include <vector>
-//#include <Accelerate/Accelerate.h>
 #include <stdexcept>
 #include "fechoActivations.hpp"
 #include "fechoUtil.hpp"
@@ -38,7 +37,8 @@ namespace Fecho {
         inline Reservoir& setNoise(T val) {noise = val; return *this;}
         
         inline Col<T> &getActivations() {return x;}
-        inline Mat<T> &getRes() {return resWeights;}
+        inline const Mat<T> &getRes() {return resWeights;}
+        inline void setResWeights(Mat<T> newWeights) {resWeights = newWeights; orgResWeights = newWeights;}
         inline Mat<T> &getIns() {return inWeights;}
         inline Col<T> &getInputs() {return inputs;}
         void setInputs(Col<T> &newInputs) {
@@ -57,21 +57,20 @@ namespace Fecho {
         void resetStates() {
             x.fill(0);
         }
-        void randomiseStates() {
+        void randomiseActivations() {
             x.randu();
             x = (x * 2.0) - 1.0;
         }
-        void setStates(Col<T> &newStates) {
-            x = newStates;
-        }
+        void setActivations(Col<T> newStates) {x = newStates;}
         inline T getNoise(){return noise;}
         inline bool isFeedbackOn() {return feedbackOn;}
         inline void setFeedbackOn(bool newVal) {feedbackOn = newVal;}
+        inline void scaleReservoir(float newScale) {resWeights = orgResWeights * newScale;}
     protected:
-    private:
         Col<T> x; //activations
         Mat<T> inWeights; //input weights
-        Mat<T> resWeights; //reservoir weights
+        Mat<T> resWeights;  //reservoir weights
+        Mat<T> orgResWeights; // original weights, used for realtime alpha modifications
         Col<T> inputs; //input values
         uint nRes, nIns;
         ActivationFunctionBase<T> *act;        
@@ -80,10 +79,60 @@ namespace Fecho {
     };
 
     template<typename T>
+    class DelayLine {
+    public:
+        DelayLine() {
+            setDelayLength(1);
+            idx=0;
+            value = 0;
+        }
+        void setDelayLength(unsigned int delaySize) {
+            delayBuffer.set_size(delaySize+1);
+            delayBuffer.fill(0);
+        }
+        void newFrame(T newVal) {
+            delayBuffer(idx) = newVal;
+            idx++;
+            if (idx == delayBuffer.n_rows) {
+                idx = 0;
+            }
+            value = delayBuffer(idx);
+        }
+        
+        T getValue() {
+            return value;
+        }
+        
+    protected:
+        Col<T> delayBuffer;
+        unsigned int idx;
+        T value;
+    };
+    
+    template<typename T>
+    class DelayNodeReservoir : public Reservoir<T> {
+    public:
+        typedef vector<DelayLine<T> > delayLineVector;
+        DelayNodeReservoir() {}
+        DelayNodeReservoir(const uint inputSize, const uint reservoirSize, ActivationFunctionBase<T> *_act) : Reservoir<T>(inputSize, reservoirSize, _act) {
+            delays.resize(reservoirSize);
+        }
+        inline DelayLine<T>& getDelayLine(unsigned int idx) {return delays[idx];}
+        
+    protected:
+        delayLineVector delays;
+    };
+    
+    template<typename T>
     class ReadOut {
     public:
         ReadOut() {}
-        ReadOut(Reservoir<T> &_res, const uint _size, ActivationFunctionBase<T> *_act) : size(_size) {
+        
+        ReadOut(Reservoir<T> &_res, const uint _size, ActivationFunctionBase<T> *_act) {
+            init(_res, _size, _act);
+        }
+        void init(Reservoir<T> &_res, const uint _size, ActivationFunctionBase<T> *_act) {
+            size = _size;
             res = &_res;
             weightsRes.set_size(size, res->getNRes());
             weightsRes.fill(0);
@@ -195,10 +244,10 @@ namespace Fecho {
             mat.reshape(matDimR, matDimC);
         }
         
-        void init(Reservoir<T> &net, ReadOut<T> &ro) {
+        virtual void init(Reservoir<T> &net, ReadOut<T> &ro) {
             
             //choose non-zero connections
-            Mat<T> &res = net.getRes();
+            Mat<T> res = net.getRes();
             randomiseMatrix(res, resConnectivity, resLow, resRange);
             
             if (net.getNIns() > 0) {
@@ -212,11 +261,13 @@ namespace Fecho {
                 randomiseMatrix(fbWeights, fbConnectivity, fbLow, fbRange);
             }
             
-            cx_vec eigval;
-            cx_mat eigvec;
+            Col<std::complex<T> > eigval;
+            Mat<std::complex<T> > eigvec;
+            
             if (eig_gen(eigval, eigvec, res)) {
                 T scaleFactor = alpha / abs((max(eigval)));
                 res = res * scaleFactor;
+                net.setResWeights(res);
             }else{
                 throw(EVException());
             }
@@ -231,16 +282,31 @@ namespace Fecho {
     };
     
     template <typename T>
+    class DelayNodeResInitialiser : public Initialiser<T> {
+    public:
+        void init(DelayNodeReservoir<T> &net, ReadOut<T> &ro) {
+            Initialiser<T>::init(net, ro);
+            for(int i=0; i < net.getNRes(); i++) {
+                net.getDelayLine(i).setDelayLength(rand() % 1000 );
+            }
+        }
+    };
+
+    
+    template <typename T>
     class Simulator {
     public:
         Simulator() {}
         Simulator(Reservoir<T> &_net, ReadOut<T> &_ro) {
+            init(_net, _ro);
+        }
+        
+        void init(Reservoir<T> &_net, ReadOut<T> &_ro) {
             net = &_net;
             ro = &_ro;
             WinxU.set_size(net->getNRes());
             WxX.set_size(net->getNRes());
             WxY.set_size(net->getNRes());
-            res = &net->getRes();
             x = &net->getActivations();
             ins = &net->getIns();
             noiseVect.set_size(net->getNRes());
@@ -253,7 +319,7 @@ namespace Fecho {
         
         inline void randArray(vector<T> &vals);
         
-        inline void simulateOneEpoch(Col<T> &inputs) {
+        virtual inline void simulateOneEpoch(Col<T> &inputs) {
             net->setInputs(inputs);
             
             T noiseLevel = net->getNoise();
@@ -262,7 +328,7 @@ namespace Fecho {
                 *x = *x + ((noiseVect - 0.5) * (noiseLevel * 2.0));
             }
             
-            WxX = *res * *x;
+            WxX = net->getRes() * *x;
             
             if (net->getNIns() > 0) {
                 WinxU = *ins * inputs;
@@ -283,7 +349,7 @@ namespace Fecho {
     protected:
         Col<T> WinxU, WxX, WxY;
         Col<T> *x;
-        Mat<T> *res, *ins;
+        Mat<T> *ins;
         Reservoir<T> *net;
         ReadOut<T> *ro;
         Col<T> noiseVect;
@@ -300,9 +366,9 @@ namespace Fecho {
         
         inline void simulate(Col<T> inputs) {
             //(1-alpha)Xn
-            leakyX = this->x * alpha;
+            leakyX = *this->x * alpha;
             this->simulateOneEpoch(inputs);
-            this->x = this->x + leakyX;
+            *this->x = *this->x + leakyX;
             this->ro->update();
         }
 
@@ -310,6 +376,54 @@ namespace Fecho {
         T alpha;
         Col<T> leakyX;
     };
+    
+    template <typename T>
+    class DelayNodeSimulator : public SimulatorLI<T> {
+    public:
+        DelayNodeSimulator(DelayNodeReservoir<T> &_net, ReadOut<T> &_ro, T leakRate) : SimulatorLI<T>(_net, _ro, leakRate){
+        }
+
+        virtual inline void simulateOneEpoch(Col<T> &inputs) {
+
+            this->net->setInputs(inputs);
+
+            T noiseLevel = this->net->getNoise();
+            if (noiseLevel > 0) {
+                this->noiseVect.randu();
+                *this->x = *this->x + ((this->noiseVect - 0.5) * (noiseLevel * 2.0));
+            }
+            
+            
+            this->WxX = this->net->getRes() * *this->x;
+            
+            if (this->net->getNIns() > 0) {
+                this->WinxU = *this->ins * inputs;
+                *this->x = this->WxX + this->WinxU;
+            }else{
+                *this->x = this->WxX;
+            }
+            
+            //outs(n-1) * fb
+            if (this->net->isFeedbackOn()) {
+                this->WxY =this->ro->getFbWeights() * this->ro->getOutputs();
+                *this->x = *this->x + this->WxY;
+            }
+
+
+            this->net->getActivationFunction()->process(*this->x);
+
+            for(int i=0; i < (*this->x).n_rows; i++) {
+                ((DelayNodeReservoir<T>*)this->net)->getDelayLine(i).newFrame((*this->x)(i));
+            }
+            
+            for(int i=0; i < (*this->x).n_rows; i++) {
+                (*this->x)(i) = ((DelayNodeReservoir<T>*)this->net)->getDelayLine(i).getValue();
+            }
+
+            
+        }
+    };
+
     
     
     class TrainingException: public std::runtime_error { public: TrainingException(): std::runtime_error("An error occured during training.\n") {} };
@@ -382,8 +496,6 @@ namespace Fecho {
             
             solvedWeights = solve(extStates, outputDataInv);
             
-//            if (info > 0) {
-//                throw(TrainingException());
         }
         
     protected:

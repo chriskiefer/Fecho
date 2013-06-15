@@ -1,5 +1,16 @@
-Fecho: an Echo State Network library for OSX.
+Fecho: an C++ Echo State Network library.
 
-This project is still very much in alpha, definitely not production ready yet. 
+The library is optimised for high-performance realtime use in interactive audio and multimedia scenarios, along with the conventional ML uses for ESNs.
 
-The library is optimised for use in interactive audio and multimedia scenarios, along with the conventional ML uses for ESNs.
+Main.cpp gives examples of use.
+
+Fecho is intended to be cross-platform, but up until now has only been tested on OSX.
+
+Future additions may include:
+
+- ridge regression training
+- small world network topology
+- multi-frequency techniques
+- examples for sound synthesis and audio processing
+- testing on windows, linux and iOS.
+

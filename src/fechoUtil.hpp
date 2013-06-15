@@ -3,7 +3,6 @@
 //  libFecho
 //
 //  Created by Chris Kiefer on 01/11/2012.
-//  Copyright (c) 2012 Goldsmiths, University of London. EAVI. All rights reserved.
 //
 
 #ifndef libFecho_fechoUtil_h

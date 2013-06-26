@@ -428,6 +428,20 @@ namespace Fecho {
         }
     };
     
+    template<typename T>
+    class TrainerRidgeRegression : public TrainerLeastSquares<T> {
+    public:
+        TrainerRidgeRegression(Simulator<T> *_sim, ReadOut<T> *_rOut, Mat<T> &inputsMatrix, Mat<T> &desiredOutputsMatrix, const uint _washout, T _alpha) : TrainerLeastSquares<T>(_sim, _rOut, inputsMatrix, desiredOutputsMatrix, _washout), alpha(_alpha) {
+        }
+        
+        void solveOutputWeights() {
+            Mat<T> P = trans(this->extStates) * this->outputDataInv;
+            Mat<T> R = trans(this->extStates) * this->extStates;
+            this->solvedWeights = inv(R + (alpha * alpha * eye(R.n_cols, R.n_cols))) * P;
+        }
+    protected:
+        T alpha;
+    };
 
 
     

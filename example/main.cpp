@@ -210,11 +210,12 @@ void nonLinearFunctionTest() {
 }
 
 void sineWaveTest() {
+    //see http://minds.jacobs-university.de/sites/default/files/uploads/papers/ESNTutorialRev.pdf, section 6.1
     clock_t ts = clock();
     
     ActivationFunctionTanh<FECHOTYPE> resAct;
     Reservoir<FECHOTYPE> net(0, 20, &resAct);
-    net.setNoise(1e-6);
+//    net.setNoise(1e-6);
     
     MultiStreamRecorder<FECHOTYPE> actsRecorder;
     actsRecorder.setChannels(net.getNRes());
@@ -226,9 +227,9 @@ void sineWaveTest() {
     try {
         Initialiser<FECHOTYPE> netInit;
         netInit.setResRangeLow(-1.0).setResRangeHigh(1.0).setResConnectivity(0.2)
-        .setSpectralRadius(0.45)
+        .setSpectralRadius(0.1)
         .setInConnectivity(0).setInRangeLow(0).setInRangeHigh(0)
-        .setFbConnectivity(1.0).setFbRangeLow(-1).setFbRangeHigh(1)
+        .setFbConnectivity(1.0).setFbRangeLow(-1.0).setFbRangeHigh(1.0)
         .init(net, ro);
         net.dump();
         //        ro.dump();
@@ -239,23 +240,23 @@ void sineWaveTest() {
     
     cout << "Training ESN";
     
-    int trainSize=4000, testSize = 20000;
+    int trainSize=300, testSize = 3000;
     Mat<FECHOTYPE> dataIn, dataOut;
     dataIn.set_size(trainSize + testSize, 1);
     dataOut.set_size(trainSize + testSize, 1);
     dataOut(0) = 0;
     for(int i=1; i < trainSize + testSize; i++) {
         dataIn(i) = 0;
-        dataOut(i) = sin(i/100.0) ;
+        dataOut(i) = 0.5 * sin(i/4.0) ;
     }
     
     Mat<FECHOTYPE> trainIn = dataIn.rows(0, trainSize-1);
     Mat<FECHOTYPE> trainOut = dataOut.rows(0, trainSize-1);
-    TrainerPseudoInverse<FECHOTYPE> trainer(&sim, &ro, trainIn, trainOut, 2000);
+    TrainerPseudoInverse<FECHOTYPE> trainer(&sim, &ro, trainIn, trainOut, 100);
     trainer.train();
     
     cout << "Running ESN\n";
-//    net.resetStates();
+    net.resetStates();
     
     Mat<FECHOTYPE> simIn = dataIn.rows(trainSize, dataIn.n_rows-1);
     Mat<FECHOTYPE> testOut = dataOut.rows(trainSize, dataIn.n_rows-1);
@@ -263,6 +264,7 @@ void sineWaveTest() {
     Mat<FECHOTYPE> simOut(ro.getSize(), simIn.n_cols);
     
     
+//    net.randomiseActivations();
     for(int i=0; i < simIn.n_cols; i++) {
         Col<FECHOTYPE> input=simIn.unsafe_col(i);
         sim.simulate(input);

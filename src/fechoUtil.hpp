@@ -11,6 +11,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 namespace Fecho {
 
@@ -74,18 +75,33 @@ namespace Fecho {
         return s.str();
     }
 
+    template<typename T>
+    class error {
+    public:
+        static T MSE(Col<T> &seq1, Col<T> &seq2) {
+            Col<T> diff = seq2 - seq1;
+            T sqError = sum(square(diff));
+            return sqError / static_cast<T>(seq1.n_rows);
+        }
+        static T RMSE(Col<T> &seq1, Col<T> &seq2) {
+            return sqrt(MSE(seq1, seq1));
+        }
+        static T calc(Col<T> &seq1, Col<T> &seq2) {
+            T xrange = std::max(seq1.max(), seq2.max()) - std::min(seq1.min(), seq2.min());
+            T nmrse = xrange == 0 ? 0 : RMSE(seq1, seq2) / xrange;
+            return nmrse;
+        }
+
+    };
+    
 //    template<typename T>
-//    class MSE {
-//    public:
-//        static T calc(vector<T> &seq1, vector<T> &seq2) {
-//            vector<T> diff(seq1.size());
-//            Math::vecsub(&seq1[0], 1, &seq2[0], 1, &diff[0], 1, seq1.size());
-//            Math::vecsq(&diff[0], 1, &diff[0], 1, diff.size());
-//            T mean;
-//            Math::vecmean(&diff[0], 1, &mean, diff.size());
-//            return mean;
+//    void zeroCrossings(Col<T> signal, float &period, float &variance) {
+//        int lastZeroCrossingIdx = -1;
+//        Col<T> periods;
+//        for(int i=1; i < signal.n_rows; i++) {
+//            
 //        }
-//    };
+//    }
 }
 
 #endif

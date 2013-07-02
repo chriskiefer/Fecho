@@ -94,6 +94,29 @@ namespace Fecho {
 
     };
     
+    template<typename T>
+    class randomise {
+    public:
+        static void randomiseMatrix(Mat<T> &mat, float connectivity, float low, float range) {
+            //randomise
+            mat.randu();
+            //map to range
+            mat = low + (range * mat);
+            int matDimC = mat.n_cols;
+            int matDimR = mat.n_rows;
+            //reshape to one dimension
+            mat.reshape(mat.n_cols * mat.n_rows, 1);
+            //zero out some elements
+            if (connectivity < 1) {
+                mat.rows(floor(mat.n_rows * connectivity), mat.n_rows-1).fill(0);
+            }
+            //shuffle
+            mat = shuffle(mat);
+            //back into shape
+            mat.reshape(matDimR, matDimC);
+        }
+    };
+    
 //    template<typename T>
 //    void zeroCrossings(Col<T> signal, float &period, float &variance) {
 //        int lastZeroCrossingIdx = -1;

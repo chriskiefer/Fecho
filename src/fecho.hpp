@@ -31,7 +31,6 @@ namespace Fecho {
             nIns = inputSize;
             act = _act;
             noise=0;
-            feedbackOn = false;
             scale = 1.0;
         }
         
@@ -55,7 +54,7 @@ namespace Fecho {
             cout << resWeights << endl;
         }
         inline ActivationFunctionBase<T>* getActivationFunction() {return act;}
-        void resetStates() {
+        void resetActivations() {
             x.fill(0);
         }
         void randomiseActivations() {
@@ -64,8 +63,6 @@ namespace Fecho {
         }
         void setActivations(Col<T> newStates) {x = newStates;}
         inline T getNoise(){return noise;}
-        inline bool isFeedbackOn() {return feedbackOn;}
-        inline void setFeedbackOn(bool newVal) {feedbackOn = newVal;}
         inline void scaleReservoir(float newScale) {scale = newScale; resWeights = orgResWeights * scale;}
         inline T getScale() {return scale;}
     protected:
@@ -77,7 +74,6 @@ namespace Fecho {
         uint nRes, nIns;
         ActivationFunctionBase<T> *act;        
         T noise;
-        bool feedbackOn;
         T scale;
     };
 
@@ -105,6 +101,7 @@ namespace Fecho {
             outputsFromIns.fill(0);
             act = _act;
             mapInsToOuts = true;
+            feedbackOn = false;
         }
         
         inline void update() {
@@ -148,6 +145,9 @@ namespace Fecho {
             cout << weightsIn << endl;
             cout << fbWeights << endl;
         }
+        inline bool isFeedbackOn() {return feedbackOn;}
+        inline void setFeedbackOn(bool newVal) {feedbackOn = newVal;}
+        
         
     protected:
         uint size;
@@ -158,63 +158,39 @@ namespace Fecho {
         Mat<T> fbWeights;
         ActivationFunctionBase<T> *act;
         bool mapInsToOuts;
+        bool feedbackOn;
     };
     
     template <typename T>
-    class Initialiser {
+    class ReservoirInitialiser {
     public:
         class EVException: public std::runtime_error { public: EVException(): std::runtime_error("Exception: Failed to compute the eigenvalues of the reservoir\n") {} };
         
-        Initialiser() : resLow(-1), resHigh(1), resConnectivity(0.1), alpha(0.9), inLow(-1), inHigh(1), inConnectivity(0.1),
-        fbLow(-1), fbHigh(1.0), fbConnectivity(1.0)
+        ReservoirInitialiser() : resLow(-1), resHigh(1), resConnectivity(0.1), alpha(0.9), inLow(-1), inHigh(1), inConnectivity(0.1)
         {
             updateResRange();
             updateInRange();
-            updateFbRange();
         }
         
         inline void updateResRange() {resRange = resHigh - resLow;}
         inline void updateInRange() {inRange = inHigh - inLow;}
-        inline void updateFbRange() {fbRange = fbHigh - fbLow;}
-        inline Initialiser& setSpectralRadius(T val) {alpha=val; return *this;}
-        inline Initialiser& setResConnectivity(T val) {resConnectivity=val; return *this;}
-        inline Initialiser& setResRangeLow(T val) {resLow=val; updateResRange(); return *this;}
-        inline Initialiser& setResRangeHigh(T val) {resHigh=val; updateResRange(); return *this;}
-        inline Initialiser& setInConnectivity(T val) {inConnectivity=val; return *this;}
-        inline Initialiser& setInRangeLow(T val) {inLow=val; updateInRange(); return *this;}
-        inline Initialiser& setInRangeHigh(T val) {inHigh=val; updateInRange(); return *this;}
-        inline Initialiser& setFbConnectivity(T val) {fbConnectivity=val; return *this;}
-        inline Initialiser& setFbRangeLow(T val) {fbLow=val; updateFbRange(); return *this;}
-        inline Initialiser& setFbRangeHigh(T val) {fbHigh=val; updateFbRange(); return *this;}
+        inline ReservoirInitialiser& setSpectralRadius(T val) {alpha=val; return *this;}
+        inline ReservoirInitialiser& setResConnectivity(T val) {resConnectivity=val; return *this;}
+        inline ReservoirInitialiser& setResRangeLow(T val) {resLow=val; updateResRange(); return *this;}
+        inline ReservoirInitialiser& setResRangeHigh(T val) {resHigh=val; updateResRange(); return *this;}
+        inline ReservoirInitialiser& setInConnectivity(T val) {inConnectivity=val; return *this;}
+        inline ReservoirInitialiser& setInRangeLow(T val) {inLow=val; updateInRange(); return *this;}
+        inline ReservoirInitialiser& setInRangeHigh(T val) {inHigh=val; updateInRange(); return *this;}
         
-        void randomiseMatrix(Mat<T> &mat, float connectivity, float low, float range) {
-            mat.randu();
-            mat = resLow + (resRange * mat);
-            int matDimC = mat.n_cols;
-            int matDimR = mat.n_rows;
-            mat.reshape(mat.n_cols * mat.n_rows, 1);
-            if (connectivity < 1) {
-                mat.rows(floor(mat.n_rows * connectivity), mat.n_rows-1).fill(0);
-            }
-            mat = shuffle(mat);
-            mat.reshape(matDimR, matDimC);
-        }
-        
-        virtual void init(Reservoir<T> &net, ReadOut<T> &ro) {
+        virtual void init(Reservoir<T> &net) {
             
             //choose non-zero connections
             Mat<T> res = net.getRes();
-            randomiseMatrix(res, resConnectivity, resLow, resRange);
+            randomise<T>::randomiseMatrix(res, resConnectivity, resLow, resRange);
             
             if (net.getNIns() > 0) {
                 Mat<T> &ins = net.getIns();
-                randomiseMatrix(ins, inConnectivity, inLow, inRange);
-            }
-
-            net.setFeedbackOn(fbConnectivity > 0 && fbRange > 0);
-            if (net.isFeedbackOn()) {
-                Mat<T> &fbWeights = ro.getFbWeights();
-                randomiseMatrix(fbWeights, fbConnectivity, fbLow, fbRange);
+                randomise<T>::randomiseMatrix(ins, inConnectivity, inLow, inRange);
             }
             
             Col<std::complex<T> > eigval;
@@ -232,11 +208,35 @@ namespace Fecho {
     private:
         T resRange, resLow, resHigh;
         T inRange, inLow, inHigh;
-        T fbRange, fbLow, fbHigh;
-        T resConnectivity, inConnectivity, fbConnectivity;
+        T resConnectivity, inConnectivity;
         T alpha;
     };
     
+    template <typename T>
+    class ReadOutInitialiser {
+    public:
+        ReadOutInitialiser() : fbLow(-1), fbHigh(1.0), fbConnectivity(1.0)
+        {
+            updateFbRange();
+        }
+        
+        inline void updateFbRange() {fbRange = fbHigh - fbLow;}
+        inline ReadOutInitialiser& setFbConnectivity(T val) {fbConnectivity=val; return *this;}
+        inline ReadOutInitialiser& setFbRangeLow(T val) {fbLow=val; updateFbRange(); return *this;}
+        inline ReadOutInitialiser& setFbRangeHigh(T val) {fbHigh=val; updateFbRange(); return *this;}
+        
+        virtual void init(ReadOut<T> &ro) {
+            ro.setFeedbackOn(fbConnectivity > 0 && fbRange > 0);
+            if (ro.isFeedbackOn()) {
+                Mat<T> &fbWeights = ro.getFbWeights();
+                randomise<T>::randomiseMatrix(fbWeights, fbConnectivity, fbLow, fbRange);
+            }
+        }
+        
+    private:
+        T fbRange, fbLow, fbHigh;
+        T fbConnectivity;
+    };
     
     template <typename T>
     class Simulator {
@@ -248,7 +248,8 @@ namespace Fecho {
         
         void init(Reservoir<T> &_net, ReadOut<T> &_ro) {
             net = &_net;
-            ro = &_ro;
+            readOuts.push_back(&_ro);
+//            ro = &_ro;
             WinxU.set_size(net->getNRes());
             WxX.set_size(net->getNRes());
             WxY.set_size(net->getNRes());
@@ -260,7 +261,9 @@ namespace Fecho {
        
         virtual inline void simulate(Col<T> &inputs) {
             simulateOneEpoch(inputs);
-            ro->update();
+            for(int i=0; i < readOuts.size(); i++) {
+                readOuts[i]->update();
+            }
         }
         
         inline void randArray(vector<T> &vals);
@@ -284,11 +287,20 @@ namespace Fecho {
             }
 
             //outs(n-1) * fb
-            if (net->isFeedbackOn()) {
-                WxY = (ro->getFbWeights() * feedbackScale) * ro->getOutputs();
-//                WxY = WxY * feedbackScale;
-                *x = *x + WxY;
+            for(int i=0; i < readOuts.size(); i++) {
+                //readOuts[i]->update();
+                if (readOuts[i]->isFeedbackOn()) {
+                    WxY = (readOuts[i]->getFbWeights() * feedbackScale) * readOuts[i]->getOutputs();
+                    //                WxY = WxY * feedbackScale;
+                    *x = *x + WxY;
+                }
             }
+            
+//            if (net->isFeedbackOn()) {
+//                WxY = (ro->getFbWeights() * feedbackScale) * ro->getOutputs();
+////                WxY = WxY * feedbackScale;
+//                *x = *x + WxY;
+//            }
             
             net->getActivationFunction()->process(*x);
         }
@@ -300,7 +312,7 @@ namespace Fecho {
         Col<T> *x;
         Mat<T> *ins;
         Reservoir<T> *net;
-        ReadOut<T> *ro;
+        vector<ReadOut<T>*> readOuts;
         Col<T> noiseVect;
         T feedbackScale;
     };
@@ -366,7 +378,7 @@ namespace Fecho {
             for(int i=0; i < washout; i++) {
                 Col<T> dataIn = trans(inputData->row(inputIdx));
                 sim->simulate(dataIn);
-                if (sim->getRes()->isFeedbackOn()) {
+                if (ro->isFeedbackOn()) {
                     Col<T> fbData = trans(outputData->row(inputIdx));
                     ro->teacherForce(fbData);
                 }
@@ -377,7 +389,7 @@ namespace Fecho {
                 //run an iteration of the system
                 Col<T> dataIn = trans(inputData->row(inputIdx));
                 sim->simulate(dataIn);
-                if (sim->getRes()->isFeedbackOn())
+                if (ro->isFeedbackOn())
                     ro->teacherForce(trans(outputData->row(inputIdx)));
                 
                 //copy states

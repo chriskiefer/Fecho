@@ -259,6 +259,10 @@ namespace Fecho {
             feedbackScale = 1.0;
         }
        
+        void addReadOut(ReadOut<T> &ro) {
+            readOuts.push_back(&ro);
+        }
+        
         virtual inline void simulate(Col<T> &inputs) {
             simulateOneEpoch(inputs);
             for(int i=0; i < readOuts.size(); i++) {
@@ -331,7 +335,9 @@ namespace Fecho {
             leakyX = *this->x * alpha;
             this->simulateOneEpoch(inputs);
             *this->x = (oneMinusAlpha * *this->x) + leakyX;
-            this->ro->update();
+            for(int i=0; i < this->readOuts.size(); i++) {
+                this->readOuts[i]->update();
+            }
         }
         
         inline void setLeakRate(T newRate) {alpha = 1.0 - newRate;}
@@ -372,6 +378,7 @@ namespace Fecho {
             collectedStatesCount = (trainSize - washout);
             extStates.set_size(collectedStatesCount, stateSize);
         }
+        
         void train() {
             int inputIdx=0;
             //run to washout

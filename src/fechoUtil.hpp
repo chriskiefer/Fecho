@@ -86,10 +86,14 @@ namespace Fecho {
         static T RMSE(Col<T> &seq1, Col<T> &seq2) {
             return sqrt(MSE(seq1, seq1));
         }
-        static T calc(Col<T> &seq1, Col<T> &seq2) {
-            T xrange = std::max(seq1.max(), seq2.max()) - std::min(seq1.min(), seq2.min());
-            T nmrse = xrange == 0 ? 0 : RMSE(seq1, seq2) / xrange;
-            return nmrse;
+        static T NMSE(Col<T> &inputSig, Col<T> &targetSig) {
+            T v = var(targetSig);
+            Col<T> error = targetSig - inputSig;
+            error = square(error);
+            return v==0 ? 0 : mean(error) / v;
+        }
+        static T NMRSE(Col<T> &inputSig, Col<T> &targetSig) {
+            return sqrt(NMSE(inputSig, targetSig));
         }
 
     };
@@ -117,14 +121,6 @@ namespace Fecho {
         }
     };
     
-//    template<typename T>
-//    void zeroCrossings(Col<T> signal, float &period, float &variance) {
-//        int lastZeroCrossingIdx = -1;
-//        Col<T> periods;
-//        for(int i=1; i < signal.n_rows; i++) {
-//            
-//        }
-//    }
 }
 
 #endif

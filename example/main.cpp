@@ -305,10 +305,10 @@ int main(int argc, const char * argv[])
     std::cout << "Fecho example\n";
 
     pyCode.open("/tmp/esn.py", ios_base::out);
-//    randomNetworkTest();
+    randomNetworkTest();
 //    randomNetworkWithInputTest();
 //    nonLinearFunctionTest();
-    sineWaveTest();
+//    sineWaveTest();
     pyCode.close();
 
     return 0;

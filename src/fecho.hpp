@@ -131,6 +131,7 @@ namespace Fecho {
         inline void setMapInsToOuts(bool val) {mapInsToOuts = val;}
         inline bool insAreMappedToOuts() {return mapInsToOuts;}
         inline Mat<T> &getFbWeights() {return fbWeights;}
+        inline Mat<T> &getResWeights() {return weightsRes;}
 
         //input is (nRes + nIns) x nOuts matrix,
         void setOutputWeights(Mat<T> &newWeights) {
@@ -166,7 +167,7 @@ namespace Fecho {
     public:
         class EVException: public std::runtime_error { public: EVException(): std::runtime_error("Exception: Failed to compute the eigenvalues of the reservoir\n") {} };
         
-        ReservoirInitialiser() : resLow(-1), resHigh(1), resConnectivity(0.1), alpha(0.9), inLow(-1), inHigh(1), inConnectivity(0.1)
+        ReservoirInitialiser() : resLow(-1), resHigh(1), resConnectivity(0.1), inLow(-1), inHigh(1), inConnectivity(0.1), alpha(0.9)
         {
             updateResRange();
             updateInRange();
@@ -300,12 +301,6 @@ namespace Fecho {
                 }
             }
             
-//            if (net->isFeedbackOn()) {
-//                WxY = (ro->getFbWeights() * feedbackScale) * ro->getOutputs();
-////                WxY = WxY * feedbackScale;
-//                *x = *x + WxY;
-//            }
-            
             net->getActivationFunction()->process(*x);
         }
         inline Reservoir<T>* getRes() {return net;}
@@ -368,7 +363,7 @@ namespace Fecho {
          *  ...
          
          */
-        TrainerLeastSquares(Simulator<T> *_sim, ReadOut<T> *_rOut, Mat<T> &inputsMatrix, Mat<T> &desiredOutputsMatrix, const uint _washout) : sim(_sim), ro(_rOut), trainSize(desiredOutputsMatrix.n_rows), washout(_washout) {
+        TrainerLeastSquares(Simulator<T> *_sim, ReadOut<T> *_rOut, Mat<T> &inputsMatrix, Mat<T> &desiredOutputsMatrix, const uint _washout) : sim(_sim), trainSize(desiredOutputsMatrix.n_rows), washout(_washout), ro(_rOut) {
             inputData = &inputsMatrix;
             outputData = &desiredOutputsMatrix;
             stateSize = sim->getRes()->getNRes();
@@ -380,6 +375,14 @@ namespace Fecho {
         }
         
         void train() {
+            
+            runAndCollectActivations();
+            prepareTeacherSignal();
+            calculateOutputWeights();
+        }
+
+        
+        void runAndCollectActivations() {
             int inputIdx=0;
             //run to washout
             for(int i=0; i < washout; i++) {
@@ -407,21 +410,32 @@ namespace Fecho {
                 inputIdx++;
             }
             
+        }
+        
+        void prepareTeacherSignal() {
             //inverse-activate desired outs
             outputDataInv = outputData->rows(washout, outputData->n_rows-1);
-            ro->getActivationFunction()->invProcess(outputDataInv);
+            ro->getActivationFunction()->invProcess(outputDataInv);            
+        }
+        
+        void calculateOutputWeights() {
             solvedWeights.set_size(stateSize, ro->getSize());
             solveOutputWeights();
             ro->setOutputWeights(solvedWeights);
         }
+        
+        Mat<T> &getExtStates() {return extStates;}
 
         virtual void solveOutputWeights() {
             
             solvedWeights = solve(extStates, outputDataInv);
             
         }
-        
+
     protected:
+        
+
+        
         Mat<T> *inputData;
         Mat<T> *outputData;
         uint trainSize;
@@ -456,7 +470,11 @@ namespace Fecho {
         void solveOutputWeights() {
             Mat<T> P = trans(this->extStates) * this->outputDataInv;
             Mat<T> R = trans(this->extStates) * this->extStates;
-            this->solvedWeights = inv(R + (alpha * alpha * eye(R.n_cols, R.n_cols))) * P;
+//            this->solvedWeights = inv(R + (alpha * alpha * eye(R.n_cols, R.n_cols))) * P;
+//            this->solvedWeights = (R + (alpha * alpha * eye(R.n_cols, R.n_cols))).i() * P;
+            Mat<T> idm(R.n_cols, R.n_cols);
+            idm.eye();
+            this->solvedWeights = (R + (alpha * alpha * idm)).i() * P;
         }
     protected:
         T alpha;

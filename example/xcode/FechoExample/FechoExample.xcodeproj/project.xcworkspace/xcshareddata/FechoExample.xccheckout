@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>B9994CD4-CD82-45A9-AB0B-704619E80DA2</string>
+	<key>IDESourceControlProjectName</key>
+	<string>FechoExample</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>81960128-A5AA-4279-AE3E-29B8A871754E</key>
+		<string>ssh://github.com/chriskiefer/Fecho.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>example/xcode/FechoExample/FechoExample.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>81960128-A5AA-4279-AE3E-29B8A871754E</key>
+		<string>../../../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>https://www.doc.gold.ac.uk/svn/mas01mjy_PRAISE/Fecho/example/xcode/FechoExample/FechoExample.xcodeproj</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>81960128-A5AA-4279-AE3E-29B8A871754E</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>81960128-A5AA-4279-AE3E-29B8A871754E</string>
+			<key>IDESourceControlWCCName</key>
+			<string>Fecho</string>
+		</dict>
+	</array>
+</dict>
+</plist>

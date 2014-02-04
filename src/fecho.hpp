@@ -54,6 +54,7 @@ namespace Fecho {
             cout << resWeights << endl;
         }
         inline ActivationFunctionBase<T>* getActivationFunction() {return act;}
+        void setActivationFunction(ActivationFunctionBase<T> *newAct){act = newAct;}
         void resetActivations() {
             x.fill(0);
         }
@@ -128,6 +129,7 @@ namespace Fecho {
         inline const uint getSize() {return size;}
         inline Reservoir<T> &getRes() {return res;}
         inline ActivationFunctionBase<T>* getActivationFunction() {return act;}
+        void setActivationFunction(ActivationFunctionBase<T> *newAct){act = newAct;}
         inline void setMapInsToOuts(bool val) {mapInsToOuts = val;}
         inline bool insAreMappedToOuts() {return mapInsToOuts;}
         inline Mat<T> &getFbWeights() {return fbWeights;}

@@ -1,0 +1,28 @@
+#N canvas 452 204 507 411 10;
+#X msg 252 180 init;
+#X msg 313 204 clear;
+#X msg 112 188 start;
+#X msg 108 227 stop;
+#X msg 159 159 0.1 0.3 0.4 0.5 0.6 0.7 0.8;
+#X obj 216 357 print;
+#X msg 315 241 export trainInBuffer;
+#X obj 100 18 adc~;
+#X obj 344 16 Scope~ 130 130 256 3 128 -1 1 0 0 0 0 102 255 51 135
+135 135 0;
+#X obj 90 46 rfft~;
+#X obj 94 69 pack~;
+#X obj 97 104 list split 1;
+#X floatatom 26 208 5 0 0 0 - - -;
+#X obj 215 289 multiTable \$0-inputs 1 10000 800;
+#X connect 0 0 13 0;
+#X connect 1 0 13 0;
+#X connect 2 0 13 0;
+#X connect 3 0 13 0;
+#X connect 6 0 13 0;
+#X connect 7 0 8 0;
+#X connect 7 0 9 0;
+#X connect 9 0 10 0;
+#X connect 10 0 11 0;
+#X connect 11 0 12 0;
+#X connect 11 0 13 0;
+#X connect 13 0 5 0;

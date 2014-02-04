@@ -6,6 +6,129 @@
 #include <fstream>
 #include "armadillo"
 
+using namespace std;
+
+static t_class *csv_log_class;
+
+class csv_log {
+public:
+    typedef struct _csv_log {
+        t_object  x_obj;
+        csv_log *f;
+    } t_csv_log;
+
+    string filename;
+    vector<vector<PD_FLOATTYPE> > data;
+    ofstream log;
+    bool logging = false;
+
+    csv_log(t_csv_log *x, int rows, string _filename) {
+        data.resize(rows);
+        filename = _filename;
+    }
+    
+    static void listInput_proxy(t_csv_log *x, t_symbol *selector, int argcount, t_atom *argvec) {x->f->listInput(x, selector, argcount, argvec);}
+    void listInput(t_csv_log *x, t_symbol *selector, int argcount, t_atom *argvec) {
+        if (logging) {
+            if (argcount == data.size()) {
+                bool typeError = false;
+                for(int i=0; i < data.size(); i++) {
+                    if (argvec[i].a_type == A_FLOAT) {
+                        data[i].push_back(argvec[i].a_w.w_float);
+                    }else{
+                        typeError = true;
+                        break;
+                    }
+                }
+                if (typeError) {
+                    pd_error(x, "All inputs must be numbers");
+                }else{
+                }
+            }else{
+                pd_error(x, "csv_log: %ld inputs are required", data.size());
+            }
+        }
+    }
+    
+    static void write_proxy(t_csv_log *x) {x->f->writeLog(x);}
+    void writeLog(t_csv_log *x) {
+        logging = false;
+        log.open(filename.c_str());
+        if (log.fail()) {
+            pd_error(x, "Could not open %s", filename.c_str());
+        }else{
+            for(int i=0; i < data.size(); i++) {
+                for(int j=0; j < data[i].size(); j++) {
+                    log << data[i][j] << ",";
+                }
+                log << endl;
+            }
+            log.close();
+            clearLog(x);
+            post("Log file written to %s", filename.c_str());
+        }
+        
+    }
+
+    static void clear_proxy(t_csv_log *x) {x->f->clearLog(x);}
+    void clearLog(t_csv_log *x) {
+        for(int i=0; i < data.size(); i++) {
+            data[i].clear();
+        }
+    }
+
+    static void stop_proxy(t_csv_log *x) {x->f->stopLog(x);}
+    void stopLog(t_csv_log *x) {
+        logging = false;
+    }
+
+    static void start_proxy(t_csv_log *x) {x->f->startLog(x);}
+    void startLog(t_csv_log *x) {
+        logging = true;
+    }
+
+
+    
+    ~csv_log() {
+        log.close();
+    }
+    
+    static void * create_new(t_symbol *selector, int argcount, t_atom *argvec)
+    {
+        t_csv_log *x = (t_csv_log *)pd_new(csv_log_class);
+        bool argError = false;
+        string fname;
+        post("Create: %d", argcount);
+        int rows = 1;
+        if (argcount == 2) {
+            if (argvec[0].a_type == A_SYMBOL && argvec[1].a_type == A_FLOAT) {
+                fname = argvec[0].a_w.w_symbol->s_name;
+                rows = static_cast<t_int>(argvec[1].a_w.w_float);
+            }else{
+                argError = true;
+            }
+        }else{
+            if (argcount != 0) {
+                argError = true;
+            }
+        }
+        if (argError) {
+            pd_error(x, "csv_log takes two arguments: filename and number of rows");
+        }
+        post("csv_log: initialised, writing %d rows to %s", rows, fname.c_str());
+        x->f = new csv_log(x, rows, fname);
+        return (void *)x;
+    }
+    
+    static void free(t_csv_log *x)
+    {
+        if (x->f)
+            delete x->f;
+    }
+
+};
+
+
 static t_class *fecho_pd_class;
 
 using namespace Fecho;
@@ -22,14 +145,21 @@ public:
         t_outlet *out0;
         t_outlet *out1;
         t_outlet *out2;
+        t_outlet *out3;
         t_atom *activationslist, *outputslist, *errorslist;
+        t_atom *inWeightsList, *resWeightsList, *outWeightsList, *fbWeightsList;
+        t_int inWeightsSize, resWeightsSize, outWeightsSize, fbWeightsSize;
         t_int nIns, nRes, nOuts;
     } t_fecho_pd;
 
 
-    ActivationFunctionTanh<FECHOTYPE> resAct;
+    ActivationFunctionTanh<FECHOTYPE> resActTanh;
+    ActivationFunctionLinear<FECHOTYPE> resActLin;
+    ActivationFunctionSigmoid<FECHOTYPE> resActSigmoid;
+    ActivationFunctionTanh<FECHOTYPE> roActTanh;
+    ActivationFunctionLinear<FECHOTYPE> roActLin;
+    ActivationFunctionSigmoid<FECHOTYPE> roActSigmoid;
     Reservoir<FECHOTYPE> net;
-    ActivationFunctionLinear<FECHOTYPE> roAct;
     ReadOut<FECHOTYPE> ro;
     ReadOutInitialiser<FECHOTYPE> roInit;
     Simulator<FECHOTYPE> sim;
@@ -43,14 +173,11 @@ public:
     FECHOTYPE resScale;
     
     enum trainTypes {LS, PI, RR} trainType;
+//    enum actTypes {AT_LINEAR, AT_TANH, AT_SIGMOID};
     
     vector<t_symbol*> trainInNames, trainOutNames;
     
     fecho_pd(t_fecho_pd *x) {
-        net = Reservoir<FECHOTYPE>(x->nIns, x->nRes, &resAct);
-        ro = ReadOut<FECHOTYPE> (net, x->nOuts, &roAct);
-        ro.setMapInsToOuts(true);
-        sim = Simulator<FECHOTYPE>(net, ro);
         resRangeLow = -0.1;
         resRangeHigh = 0.1;
         resConn = 0.5;
@@ -64,7 +191,20 @@ public:
         washout = 3;
         resScale = 1.0;
         trainType = RR;
+        trainInNames.resize(x->nIns);
+        for(int i=0; i < x->nIns; i++) trainInNames[i] = NULL;
+        trainOutNames.resize(x->nOuts);
+        for(int i=0; i < x->nOuts; i++) trainOutNames[i] = NULL;
+        createESN(x);
         init(x);
+    }
+    
+    void createESN(t_fecho_pd *x) {
+        net = Reservoir<FECHOTYPE>(x->nIns, x->nRes, &resActTanh);
+        ro = ReadOut<FECHOTYPE> (net, x->nOuts, &roActLin);
+        ro.setMapInsToOuts(true);
+        sim = Simulator<FECHOTYPE>(net, ro);
+        needToInitialise = true;
     }
 
     static void bang_proxy(t_fecho_pd *x) {
@@ -98,6 +238,15 @@ public:
     static void reset_proxy(t_fecho_pd *x) {x->f->reset(x);}
     void reset(t_fecho_pd *x) {
         net.resetActivations();
+    }
+
+    static void getOutputWeights_proxy(t_fecho_pd *x) {x->f->getOutputWeights(x);}
+    void getOutputWeights(t_fecho_pd *x) {
+        x->outWeightsList[0].a_w.w_symbol = gensym("outWeights");
+        for(int i=0; i < ro.getResWeights().n_elem; i++) {
+            x->outWeightsList[i+1].a_w.w_float = ro.getResWeights().at(i);
+        }
+        outlet_list(x->out3, &s_anything, ro.getResWeights().n_elem + 1, x->outWeightsList);
     }
 
     static void randomise_proxy(t_fecho_pd *x) {x->f->randomise(x);}
@@ -160,7 +309,7 @@ public:
     static void washout_proxy(t_fecho_pd *x, t_float w) {x->f->setWashout(x, w);}
     void setWashout(t_fecho_pd *x, t_float newWashout) {
         washout = static_cast<int>(newWashout);
-        post("washout: %f", washout);
+        post("washout: %d", washout);
     }
 
     static void resScale_proxy(t_fecho_pd *x, t_float w) {x->f->setResScale(x, w);}
@@ -181,6 +330,36 @@ public:
             trainType = RR;
         }else{
             post("Train type not recognised, try 'leastSquares', 'pseudoInverse', or 'ridgeRegression'");
+        }
+    }
+
+    static void resAct_proxy(t_fecho_pd *x, t_symbol *w) {x->f->setResAct(x, w);}
+    void setResAct(t_fecho_pd *x, t_symbol *tt) {
+        post("resAct: %s", tt->s_name);
+        string newResAct(tt->s_name);
+        if (newResAct == "linear") {
+            net.setActivationFunction(&resActLin);
+        }else if (newResAct == "tanh") {
+            net.setActivationFunction(&resActTanh);
+        }else if (newResAct == "sigmoid") {
+            net.setActivationFunction(&resActSigmoid);
+        }else{
+            post("Activation type not recognised, try 'linear', 'tanh', or 'sigmoid'");
+        }
+    }
+
+    static void roAct_proxy(t_fecho_pd *x, t_symbol *w) {x->f->setRoAct(x, w);}
+    void setRoAct(t_fecho_pd *x, t_symbol *tt) {
+        post("roAct: %s", tt->s_name);
+        string newRoAct(tt->s_name);
+        if (newRoAct == "linear") {
+            ro.setActivationFunction(&roActLin);
+        }else if (newRoAct == "tanh") {
+            ro.setActivationFunction(&roActTanh);
+        }else if (newRoAct == "sigmoid") {
+            ro.setActivationFunction(&roActSigmoid);
+        }else{
+            post("Activation type not recognised, try 'linear', 'tanh', or 'sigmoid'");
         }
     }
 
@@ -400,10 +579,6 @@ public:
         roInit.init(ro);
         inputVec.set_size(x->nIns);
         needToInitialise = false;
-        trainInNames.resize(x->nIns);
-        for(int i=0; i < x->nIns; i++) trainInNames[i] = NULL;
-        trainOutNames.resize(x->nOuts);
-        for(int i=0; i < x->nOuts; i++) trainOutNames[i] = NULL;
         post("Initialised");
     }
 
@@ -431,13 +606,14 @@ public:
             }
         }
         if (argError) {
-            pd_error(x, "fecho~ takes three arguments: number of inputs, number of reservoir nodes, number of outputs");
+            pd_error(x, "fecho takes three arguments: number of inputs, number of reservoir nodes, number of outputs");
         }
-        post("fecho~: initialised, %d inputs, %d nodes, %d outputs", x->nIns, x->nRes, x->nOuts);
+        post("fecho: initialised, %d inputs, %d nodes, %d outputs", x->nIns, x->nRes, x->nOuts);
         x->f = new fecho_pd(x);
         x->out0 = outlet_new(&x->x_obj, &s_list);
         x->out1 = outlet_new(&x->x_obj, &s_list);
         x->out2 = outlet_new(&x->x_obj, &s_float);
+        x->out3 = outlet_new(&x->x_obj, &s_list); //weights lists
         
         x->activationslist = (t_atom *)t_getbytes(sizeof(t_atom) * x->nRes);
         for(int i=0; i < x->nRes; i++) {
@@ -451,6 +627,26 @@ public:
         for(int i=0; i < x->nOuts; i++) {
             x->errorslist[i].a_type = A_FLOAT;
         }
+        x->inWeightsList = (t_atom *)t_getbytes(sizeof(t_atom) * (x->f->net.getInputs().n_elem + 1));
+        x->inWeightsList[0].a_type = A_SYMBOL;
+        for(int i=1; i < x->f->net.getInputs().n_elem +1; i++) {
+            x->inWeightsList[i].a_type = A_FLOAT;
+        }
+        x->resWeightsList = (t_atom *)t_getbytes(sizeof(t_atom) * (x->f->net.getRes().n_elem + 1));
+        x->resWeightsList[0].a_type = A_SYMBOL;
+        for(int i=1; i < x->f->net.getRes().n_elem+1; i++) {
+            x->resWeightsList[i].a_type = A_FLOAT;
+        }
+        x->outWeightsList = (t_atom *)t_getbytes(sizeof(t_atom) * (x->f->ro.getResWeights().n_elem + 1));
+        x->outWeightsList[0].a_type = A_SYMBOL;
+        for(int i=1; i < x->f->ro.getResWeights().n_elem+1; i++) {
+            x->outWeightsList[i].a_type = A_FLOAT;
+        }
+        x->fbWeightsList = (t_atom *)t_getbytes(sizeof(t_atom) * (x->f->ro.getFbWeights().n_elem + 1));
+        x->fbWeightsList[0].a_type = A_SYMBOL;
+        for(int i=1; i < x->f->ro.getFbWeights().n_elem+1; i++) {
+            x->fbWeightsList[i].a_type = A_FLOAT;
+        }
         
         return (void *)x;
     }
@@ -463,6 +659,16 @@ public:
             t_freebytes(x->activationslist, sizeof(t_atom *) * x->nRes);
         if (x->outputslist)
             t_freebytes(x->outputslist, sizeof(t_atom *) * x->nOuts);
+        if (x->errorslist)
+            t_freebytes(x->errorslist, sizeof(t_atom *) * x->nOuts);
+        if (x->inWeightsList)
+            t_freebytes(x->errorslist, x->f->net.getInputs().n_elem + 1);
+        if (x->resWeightsList)
+            t_freebytes(x->errorslist, x->f->net.getRes().n_elem + 1);
+        if (x->outWeightsList)
+            t_freebytes(x->errorslist, x->f->ro.getResWeights().n_elem + 1);
+        if (x->fbWeightsList)
+            t_freebytes(x->errorslist, x->f->ro.getFbWeights().n_elem + 1);
     }
 };
 
@@ -479,6 +685,7 @@ extern "C" __attribute__((visibility("default"))) void fecho_setup() {
     class_addlist(fecho_pd_class, fecho_pd::listInput_proxy);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::dumpActs_proxy, gensym("getActivations"), A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::reset_proxy, gensym("reset"), A_NULL);
+    class_addmethod(fecho_pd_class, (t_method)fecho_pd::getOutputWeights_proxy, gensym("getOutputWeights"), A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::randomise_proxy, gensym("randomise"), A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::spectralRadius_proxy, gensym("spectralRadius"), A_FLOAT, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::washout_proxy, gensym("washout"), A_FLOAT, A_NULL);
@@ -491,5 +698,20 @@ extern "C" __attribute__((visibility("default"))) void fecho_setup() {
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::trainOutBuffer_proxy, gensym("trainOutBuffer"), A_GIMME, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::train_proxy, gensym("train"), A_GIMME, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::trainType_proxy, gensym("trainType"), A_SYMBOL, A_NULL);
+    class_addmethod(fecho_pd_class, (t_method)fecho_pd::resAct_proxy, gensym("resActivation"), A_SYMBOL, A_NULL);
+    class_addmethod(fecho_pd_class, (t_method)fecho_pd::roAct_proxy, gensym("readoutActivation"), A_SYMBOL, A_NULL);
+    
+    csv_log_class = class_new(gensym("csvlog"),
+                               (t_newmethod)csv_log::create_new,
+                               (t_method)csv_log::free, sizeof(csv_log::t_csv_log),
+                               CLASS_DEFAULT, A_GIMME, A_NULL);
+    
+    class_addlist(csv_log_class, csv_log::listInput_proxy);
+    class_addmethod(csv_log_class, (t_method)csv_log::write_proxy, gensym("write"), A_NULL);
+    class_addmethod(csv_log_class, (t_method)csv_log::clear_proxy, gensym("clear"), A_NULL);
+    class_addmethod(csv_log_class, (t_method)csv_log::start_proxy, gensym("start"), A_NULL);
+    class_addmethod(csv_log_class, (t_method)csv_log::stop_proxy, gensym("stop"), A_NULL);
+    
+
 }
 

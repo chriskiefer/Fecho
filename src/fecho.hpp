@@ -10,6 +10,7 @@
 
 #include "armadillo"
 
+
 using namespace std;
 using namespace arma;
 

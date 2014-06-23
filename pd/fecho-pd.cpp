@@ -2,7 +2,6 @@
 #include <cmath>
 
 #include "fecho.hpp"
-#include <Accelerate/Accelerate.h>
 #include <fstream>
 #include "armadillo"
 
@@ -208,7 +207,7 @@ public:
         net = Reservoir<FECHOTYPE>(x->nIns, x->nRes, &resActTanh);
         ro = ReadOut<FECHOTYPE> (net, x->nOuts, &roActLin);
         ro.setMapInsToOuts(true);
-//        delete sim;
+        delete sim;
         switch(simType) {
             case SIM:
                 sim = new Simulator<FECHOTYPE>(net, ro);

@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2011 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2011 Conrad Sanderson
+// Copyright (C) 2008-2014 Conrad Sanderson
+// Copyright (C) 2008-2014 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,21 +43,23 @@ op_inv::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv>& X)
   
   const strip_diagmat<T1> strip(X.m);
   
+  bool status;
+  
   if(strip.do_diagmat == true)
     {
-    op_inv::apply_diag(out, strip.M);
+    status = op_inv::apply_diagmat(out, strip.M);
     }
   else
     {
     const uword mode = X.aux_uword_a;
     
-    const bool status = (mode == 0) ? auxlib::inv(out, X.m) : auxlib::inv(out, X.m, true);
+    status = (mode == 0) ? auxlib::inv(out, X.m) : auxlib::inv(out, X.m, true);
+    }
     
-    if(status == false)
-      {
-      out.reset();
-      arma_bad("inv(): matrix appears to be singular");
-      }
+  if(status == false)
+    {
+    out.reset();
+    arma_bad("inv(): matrix appears to be singular");
     }
   }
 
@@ -65,28 +67,49 @@ op_inv::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv>& X)
 
 template<typename T1>
 inline
-void
-op_inv::apply_diag(Mat<typename T1::elem_type>& out, const Base<typename T1::elem_type, T1>& X)
+bool
+op_inv::apply_diagmat(Mat<typename T1::elem_type>& out, const T1& X)
   {
   arma_extra_debug_sigprint();
   
   typedef typename T1::elem_type eT;
   
-  const diagmat_proxy_check<T1> A(X.get_ref(), out);
+  const diagmat_proxy<T1> A(X);
   
   const uword N = A.n_elem;
   
-  out.set_size(N,N);
+  bool status = true;
   
-  for(uword col=0; col<N; ++col)
+  if(A.is_alias(out) == false)
     {
-    for(uword row=0; row<col; ++row)   { out.at(row,col) = eT(0); }
+    out.zeros(N,N);
     
-    out.at(col,col) = eT(1) / A[col];
+    for(uword i=0; i<N; ++i)
+      {
+      const eT val = A[i];
+      
+      out.at(i,i) = eT(1) / val;
+      
+      if(val == eT(0))  { status = false; }
+      }
+    }
+  else
+    {
+    Mat<eT> tmp(N, N, fill::zeros);
     
-    for(uword row=col+1; row<N; ++row) { out.at(row,col) = eT(0); }
+    for(uword i=0; i<N; ++i)
+      {
+      const eT val = A[i];
+      
+      tmp.at(i,i) = eT(1) / val;
+      
+      if(val == eT(0))  { status = false; }
+      }
+    
+    out.steal_mem(tmp);
     }
   
+  return status;
   }
 
 
@@ -123,7 +146,7 @@ op_inv_sympd::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv_sympd>&
   if(status == false)
     {
     out.reset();
-    arma_bad("inv(): matrix appears to be singular");
+    arma_bad("inv_sympd(): matrix appears to be singular");
     }
   }
 

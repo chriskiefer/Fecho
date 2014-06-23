@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2013 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2013 Conrad Sanderson
+// Copyright (C) 2008-2013 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,23 +21,38 @@ op_dot::direct_dot_arma(const uword n_elem, const eT* const A, const eT* const B
   {
   arma_extra_debug_sigprint();
   
-  eT val1 = eT(0);
-  eT val2 = eT(0);
-  
-  uword i, j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  #if (__FINITE_MATH_ONLY__ > 0)
     {
-    val1 += A[i] * B[i];
-    val2 += A[j] * B[j];
+    eT val = eT(0);
+    
+    for(uword i=0; i<n_elem; ++i)
+      {
+      val += A[i] * B[i];
+      }
+    
+    return val;
     }
-  
-  if(i < n_elem)
+  #else
     {
-    val1 += A[i] * B[i];
+    eT val1 = eT(0);
+    eT val2 = eT(0);
+    
+    uword i, j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      val1 += A[i] * B[i];
+      val2 += A[j] * B[j];
+      }
+    
+    if(i < n_elem)
+      {
+      val1 += A[i] * B[i];
+      }
+    
+    return val1 + val2;
     }
-  
-  return val1 + val2;
+  #endif
   }
 
 
@@ -443,6 +458,34 @@ op_norm_dot::apply_unwrap(const T1& X, const T2& Y)
 
 
 //
+// op_norm_dot_slow
+
+
+
+template<typename T1, typename T2>
+arma_hot
+inline
+typename T1::elem_type
+op_norm_dot_slow::apply(const T1& X, const T2& Y)
+  {
+  arma_extra_debug_sigprint();
+  
+  typedef typename T1::elem_type eT;
+  
+  const unwrap<T1> tmp1(X);
+  const unwrap<T2> tmp2(Y);
+  
+  const Col<eT> A( const_cast<eT*>(tmp1.M.memptr()), tmp1.M.n_elem, false );
+  const Col<eT> B( const_cast<eT*>(tmp2.M.memptr()), tmp2.M.n_elem, false );
+  
+  arma_debug_check( (A.n_elem != B.n_elem), "norm_dot(): objects must have the same number of elements" );
+  
+  return ( op_dot::apply(A,B) / (norm(A,2) * norm(B,2)) );
+  }
+
+
+
+//
 // op_cdot
 
 
@@ -630,6 +673,38 @@ op_cdot::apply_proxy(const T1& X, const T2& Y)
     {
     return op_cdot::apply_unwrap( X, Y );
     }
+  }
+
+
+
+template<typename T1, typename T2>
+arma_hot
+inline
+typename promote_type<typename T1::elem_type, typename T2::elem_type>::result
+op_dot_mixed::apply(const T1& A, const T2& B)
+  {
+  arma_extra_debug_sigprint();
+  
+  typedef typename T1::elem_type in_eT1;
+  typedef typename T2::elem_type in_eT2;
+  
+  typedef typename promote_type<in_eT1, in_eT2>::result out_eT;
+  
+  const Proxy<T1> PA(A);
+  const Proxy<T2> PB(B);
+  
+  const uword N = PA.get_n_elem();
+  
+  arma_debug_check( (N != PB.get_n_elem()), "dot(): objects must have the same number of elements" );
+  
+  out_eT acc = out_eT(0);
+  
+  for(uword i=0; i < N; ++i)
+    {
+    acc += upgrade_val<in_eT1,in_eT2>::apply(PA[i]) * upgrade_val<in_eT1,in_eT2>::apply(PB[i]);
+    }
+  
+  return acc;
   }
 
 

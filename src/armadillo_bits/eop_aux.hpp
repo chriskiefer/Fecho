@@ -1,5 +1,5 @@
-// Copyright (C) 2010-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2010-2012 Conrad Sanderson
+// Copyright (C) 2010-2013 Conrad Sanderson
+// Copyright (C) 2010-2013 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,190 +8,6 @@
 
 //! \addtogroup eop_aux
 //! @{
-
-
-
-template<typename eT>
-struct eop_aux_randu
-  {
-  arma_inline
-  operator eT ()
-    {
-    return eT(std::rand()) * ( eT(1) / eT(RAND_MAX) );
-    }
-  
-  
-  inline
-  static
-  void
-  fill(eT* mem, const uword N)
-    {
-    uword i,j;
-    
-    for(i=0, j=1; j < N; i+=2, j+=2)
-      {
-      const eT tmp_i = eT(eop_aux_randu<eT>());
-      const eT tmp_j = eT(eop_aux_randu<eT>());
-      
-      mem[i] = tmp_i;
-      mem[j] = tmp_j;
-      }
-    
-    if(i < N)
-      {
-      mem[i] = eT(eop_aux_randu<eT>());
-      }
-    }
-  };
-
-
-  
-template<typename T>
-struct eop_aux_randu< std::complex<T> >
-  {
-  arma_inline
-  operator std::complex<T> ()
-    {
-    return std::complex<T>( T(eop_aux_randu<T>()), T(eop_aux_randu<T>()) );
-    }
-  
-  
-  inline
-  static
-  void
-  fill(std::complex<T>* mem, const uword N)
-    {
-    for(uword i=0; i < N; ++i)
-      {
-      mem[i] = std::complex<T>( eop_aux_randu< std::complex<T> >() );
-      }
-    }
-  };
-
-
-
-template<typename eT>
-struct eop_aux_randn
-  {
-  // rudimentary method, based on the central limit theorem:
-  // http://en.wikipedia.org/wiki/Central_limit_theorem
-  
-  // polar form of the Box-Muller transformation:
-  // http://en.wikipedia.org/wiki/Box-Muller_transformation
-  // http://en.wikipedia.org/wiki/Marsaglia_polar_method
-  
-  // other methods:
-  // http://en.wikipedia.org/wiki/Ziggurat_algorithm
-  //
-  // Marsaglia and Tsang Ziggurat technique to transform from a uniform to a normal distribution.
-  // G. Marsaglia, W.W. Tsang.
-  // "Ziggurat method for generating random variables",
-  // J. Statistical Software, vol 5, 2000.
-  // http://www.jstatsoft.org/v05/i08/
-  
-  
-  // currently using polar form of the Box-Muller transformation
-  inline
-  operator eT () const
-    {
-    // make sure we are internally using at least floats
-    typedef typename promote_type<eT,float>::result eTp;
-    
-    eTp tmp1;
-    eTp tmp2;
-    eTp w;
-    
-    do
-      {
-      tmp1 = eTp(2) * eTp(std::rand()) * (eTp(1) / eTp(RAND_MAX)) - eTp(1);
-      tmp2 = eTp(2) * eTp(std::rand()) * (eTp(1) / eTp(RAND_MAX)) - eTp(1);
-      
-      w = tmp1*tmp1 + tmp2*tmp2;
-      }
-    while ( w >= eTp(1) );
-    
-    return eT( tmp1 * std::sqrt( (eTp(-2) * std::log(w)) / w) );
-    }
-  
-  
-  
-  inline
-  static
-  void
-  generate(eT& out1, eT& out2)
-    {
-    // make sure we are internally using at least floats
-    typedef typename promote_type<eT,float>::result eTp;
-    
-    eTp tmp1;
-    eTp tmp2;
-    eTp w;
-    
-    do
-      {
-      tmp1 = eTp(2) * eTp(std::rand()) * (eTp(1) / eTp(RAND_MAX)) - eTp(1);
-      tmp2 = eTp(2) * eTp(std::rand()) * (eTp(1) / eTp(RAND_MAX)) - eTp(1);
-      
-      w = tmp1*tmp1 + tmp2*tmp2;
-      }
-    while ( w >= eTp(1) );
-    
-    const eTp k = std::sqrt( (eTp(-2) * std::log(w)) / w);
-    
-    out1 = tmp1*k;
-    out2 = tmp2*k;
-    }
-  
-  
-  
-  inline
-  static
-  void
-  fill(eT* mem, const uword N)
-    {
-    uword i, j;
-    
-    for(i=0, j=1; j < N; i+=2, j+=2)
-      {
-      eop_aux_randn<eT>::generate( mem[i], mem[j] );
-      }
-    
-    if(i < N)
-      {
-      mem[i] = eT(eop_aux_randn<eT>());
-      }
-    }
-  
-  };
-
-
-
-template<typename T>
-struct eop_aux_randn< std::complex<T> >
-  {
-  inline
-  operator std::complex<T> () const
-    {
-    T a, b;
-    
-    eop_aux_randn<T>::generate(a, b);
-    
-    return std::complex<T>(a, b);
-    }
-  
-  
-  inline
-  static
-  void
-  fill(std::complex<T>* mem, const uword N)
-    {
-    for(uword i=0; i < N; ++i)
-      {
-      mem[i] = std::complex<T>( eop_aux_randn< std::complex<T> >() );
-      }
-    }
-  
-  };
 
 
 
@@ -248,104 +64,64 @@ class eop_aux
   template<typename eT> arma_inline static typename arma_real_or_cx_only<eT>::result tanh  (const eT x) { return std::tanh (x); }
   
   template<typename eT> arma_inline static typename arma_unsigned_integral_only<eT>::result neg (const eT x) { return  x; }
-  template<typename eT> arma_inline static typename arma_signed_only<eT>::result            neg (const eT x) { return -x; }
+  template<typename eT> arma_inline static typename            arma_signed_only<eT>::result neg (const eT x) { return -x; }
   
-  template<typename eT> arma_inline static typename arma_integral_only<eT>::result floor(const eT  x) { return x;                                                }
-  template<typename eT> arma_inline static typename arma_real_only<eT>::result     floor(const eT  x) { return std::floor(x);                                    }
-  template<typename eT> arma_inline static typename arma_cx_only<eT>::result       floor(const eT& x) { return eT( std::floor(x.real()), std::floor(x.imag()) ); }
+  template<typename eT> arma_inline static typename arma_integral_only<eT>::result floor (const eT  x) { return x;                                                }
+  template<typename eT> arma_inline static typename     arma_real_only<eT>::result floor (const eT  x) { return std::floor(x);                                    }
+  template<typename eT> arma_inline static typename       arma_cx_only<eT>::result floor (const eT& x) { return eT( std::floor(x.real()), std::floor(x.imag()) ); }
   
-  template<typename eT> arma_inline static typename arma_integral_only<eT>::result  ceil(const eT  x) { return x;                                                }
-  template<typename eT> arma_inline static typename arma_real_only<eT>::result      ceil(const eT  x) { return std::ceil(x);                                     }
-  template<typename eT> arma_inline static typename arma_cx_only<eT>::result        ceil(const eT& x) { return eT( std::ceil(x.real()), std::ceil(x.imag()) );   }
-  
-  template<typename eT> arma_inline static typename arma_integral_only<eT>::result round(const eT  x) { return x;                                                        }
-  template<typename eT> arma_inline static typename arma_real_only<eT>::result     round(const eT  x) { return (x >= eT(0)) ? std::floor(x+0.5) : std::ceil(x-0.5);      }
-  template<typename eT> arma_inline static typename arma_cx_only<eT>::result       round(const eT& x) { return eT( eop_aux::round(x.real()), eop_aux::round(x.imag()) ); }
-  
-  template<typename eT>
-  arma_inline
-  static
-  typename arma_integral_only<eT>::result
-  log2 (const eT x)
-    {
-    return eT( std::log(double(x))/ double(0.69314718055994530942) );
-    }
+  template<typename eT> arma_inline static typename arma_integral_only<eT>::result ceil  (const eT  x) { return x;                                                }
+  template<typename eT> arma_inline static typename     arma_real_only<eT>::result ceil  (const eT  x) { return std::ceil(x);                                     }
+  template<typename eT> arma_inline static typename       arma_cx_only<eT>::result ceil  (const eT& x) { return eT( std::ceil(x.real()), std::ceil(x.imag()) );   }
   
   
-  template<typename eT>
-  arma_inline
-  static
-  typename arma_real_or_cx_only<eT>::result
-  log2 (const eT x)
-    {
-    typedef typename get_pod_type<eT>::result T;
-    return std::log(x) / T(0.69314718055994530942);
-    }
+  #if defined(ARMA_USE_CXX11)
+  template<typename eT> arma_inline static typename arma_integral_only<eT>::result round (const eT  x) { return x;                                                        }
+  template<typename eT> arma_inline static typename     arma_real_only<eT>::result round (const eT  x) { return std::round(x);                                            }
+  template<typename eT> arma_inline static typename       arma_cx_only<eT>::result round (const eT& x) { return eT( std::round(x.real()), std::round(x.imag()) );         }
+  #else
+  template<typename eT> arma_inline static typename arma_integral_only<eT>::result round (const eT  x) { return x;                                                        }
+  template<typename eT> arma_inline static typename     arma_real_only<eT>::result round (const eT  x) { return (x >= eT(0)) ? std::floor(x+0.5) : std::ceil(x-0.5);      }
+  template<typename eT> arma_inline static typename       arma_cx_only<eT>::result round (const eT& x) { return eT( eop_aux::round(x.real()), eop_aux::round(x.imag()) ); }
+  #endif
   
   
-  template<typename eT>
-  arma_inline
-  static
-  typename arma_integral_only<eT>::result
-  exp10 (const eT x)
-    {
-    return eT( std::pow(double(10), double(x)) );
-    }
+  #if defined(ARMA_USE_CXX11)
+  template<typename eT> arma_inline static typename   arma_integral_only<eT>::result log2 (const eT  x) { return eT( std::log(double(x))/ double(0.69314718055994530942) );                            }
+  template<typename eT> arma_inline static typename       arma_real_only<eT>::result log2 (const eT  x) { return std::log2(x);                                                                         }
+  template<typename eT> arma_inline static typename         arma_cx_only<eT>::result log2 (const eT& x) { typedef typename get_pod_type<eT>::result T; return std::log(x) / T(0.69314718055994530942); }
+  #else
+  template<typename eT> arma_inline static typename   arma_integral_only<eT>::result log2 (const eT  x) { return eT( std::log(double(x))/ double(0.69314718055994530942) );                            }
+  template<typename eT> arma_inline static typename arma_real_or_cx_only<eT>::result log2 (const eT  x) { typedef typename get_pod_type<eT>::result T; return std::log(x) / T(0.69314718055994530942); }
+  #endif
   
   
-  template<typename eT>
-  arma_inline
-  static
-  typename
-  arma_real_or_cx_only<eT>::result
-  exp10 (const eT x)
-    {
-    typedef typename get_pod_type<eT>::result T;
-    return std::pow( T(10), x);
-    }
+  #if defined(ARMA_USE_CXX11)
+  template<typename eT> arma_inline static typename   arma_integral_only<eT>::result exp2 (const eT  x) { return eT( std::pow(double(2), double(x)) );                            }
+  template<typename eT> arma_inline static typename       arma_real_only<eT>::result exp2 (const eT  x) { return std::exp2(x);                                                    }
+  template<typename eT> arma_inline static typename         arma_cx_only<eT>::result exp2 (const eT& x) { typedef typename get_pod_type<eT>::result T; return std::pow( T(2), x); }
+  #else
+  template<typename eT> arma_inline static typename   arma_integral_only<eT>::result exp2 (const eT  x) { return eT( std::pow(double(2), double(x)) );                            }
+  template<typename eT> arma_inline static typename arma_real_or_cx_only<eT>::result exp2 (const eT  x) { typedef typename get_pod_type<eT>::result T; return std::pow( T(2), x); }
+  #endif
   
   
-  template<typename eT>
-  arma_inline
-  static
-  typename arma_integral_only<eT>::result
-  exp2 (const eT x)
-    {
-    return eT( std::pow(double(2), double(x)) );
-    }
+  template<typename eT> arma_inline static typename   arma_integral_only<eT>::result exp10 (const eT x) { return eT( std::pow(double(10), double(x)) );                            }
+  template<typename eT> arma_inline static typename arma_real_or_cx_only<eT>::result exp10 (const eT x) { typedef typename get_pod_type<eT>::result T; return std::pow( T(10), x); }
+  
+  template<typename eT> arma_inline static typename arma_unsigned_integral_only<eT>::result arma_abs (const eT               x) { return x;           }
+  template<typename eT> arma_inline static typename   arma_signed_integral_only<eT>::result arma_abs (const eT               x) { return std::abs(x); }
+  template<typename eT> arma_inline static typename              arma_real_only<eT>::result arma_abs (const eT               x) { return std::abs(x); }
+  template<typename  T> arma_inline static typename              arma_real_only< T>::result arma_abs (const std::complex<T>& x) { return std::abs(x); }
+  
+  template<typename eT> arma_inline static typename arma_unsigned_integral_only<eT>::result sign (const eT  x) { return (x > eT(0)) ? eT(+1) : eT(0);                                                                      }
+  template<typename eT> arma_inline static typename   arma_signed_integral_only<eT>::result sign (const eT  x) { return (x > eT(0)) ? eT(+1) : ( (x < eT(0)) ? eT(-1) : eT(0) );                                           }
+  template<typename eT> arma_inline static typename              arma_real_only<eT>::result sign (const eT  x) { return (x > eT(0)) ? eT(+1) : ( (x < eT(0)) ? eT(-1) : eT(0) );                                           }
+  template<typename eT> arma_inline static typename                arma_cx_only<eT>::result sign (const eT& x) { typedef typename eT::value_type T; return (x.real() != T(0) && x.imag() != T(0)) ? (x / std::abs(x)) : x; }
   
   
-  template<typename eT>
-  arma_inline
-  static
-  typename arma_real_or_cx_only<eT>::result
-  exp2 (const eT x)
-    {
-    typedef typename get_pod_type<eT>::result T;
-    return std::pow( T(2), x);
-    }
-  
-  
-  template<typename T1, typename T2>
-  arma_inline
-  static
-  typename arma_real_or_cx_only<T1>::result
-  pow(const T1 base, const T2 exponent)
-    {
-    return std::pow(base, exponent);
-    }
-  
-  
-  
-  template<typename T1, typename T2>
-  arma_inline
-  static
-  typename arma_integral_only<T1>::result
-  pow(const T1 base, const T2 exponent)
-    {
-    return T1( std::pow( double(base), double(exponent) ) );
-    }
-  
+  template<typename T1, typename T2> arma_inline static typename   arma_integral_only<T1>::result pow (const T1 base, const T2 exponent) { return T1( std::pow( double(base), double(exponent) ) ); }
+  template<typename T1, typename T2> arma_inline static typename arma_real_or_cx_only<T1>::result pow (const T1 base, const T2 exponent) { return std::pow(base, exponent);                         }
   
   
   template<typename eT>
@@ -397,22 +173,6 @@ class eop_aux
     
     return std::pow( radix_T, T(std::floor(std::log10(std::abs(x))/std::log10(radix_T)) - digits_m1_T) );
     }
-  
-  
-  
-  //! work around a bug in GCC 4.4
-  template<typename eT> arma_inline static
-  typename arma_unsigned_integral_only<eT>::result arma_abs(const eT x)              { return x;           }
-  
-  template<typename eT> arma_inline static
-  typename arma_signed_integral_only<eT>::result   arma_abs(const eT x)              { return std::abs(x); }
-  
-  template<typename eT> arma_inline static
-  typename arma_real_only<eT>::result              arma_abs(const eT x)              { return std::abs(x); }
-  
-  template<typename T> arma_inline static
-  typename arma_real_only<T>::result               arma_abs(const std::complex<T> x) { return std::abs(x); }
-  
   };
 
 

@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -106,7 +106,7 @@ op_diagmat::apply(Mat<typename T1::elem_type>& out, const Op<T1, op_diagmat>& X)
           {
           const eT val = P.at(i,i);
           
-          arrayops::inplace_set(out.colptr(i), eT(0), n_rows);
+          arrayops::fill_zeros(out.colptr(i), n_rows);
           
           out.at(i,i) = val;
           }

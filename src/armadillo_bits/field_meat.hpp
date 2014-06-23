@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2011 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2013 Conrad Sanderson
+// Copyright (C) 2008-2014 Conrad Sanderson
+// Copyright (C) 2008-2014 NICTA (www.nicta.com.au)
 // Copyright (C) 2009-2010 Ian Cullinan
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
@@ -27,9 +27,6 @@ field<oT>::~field()
   if(arma_config::debug == true)
     {
     // try to expose buggy user code that accesses deleted objects
-    access::rw(n_rows) = 0;
-    access::rw(n_cols) = 0;
-    access::rw(n_elem) = 0;
     mem = 0;
     }
   }
@@ -41,6 +38,7 @@ inline
 field<oT>::field()
   : n_rows(0)
   , n_cols(0)
+  , n_slices(0)
   , n_elem(0)
   , mem(0)
   {
@@ -55,6 +53,7 @@ inline
 field<oT>::field(const field& x)
   : n_rows(0)
   , n_cols(0)
+  , n_slices(0)
   , n_elem(0)
   , mem(0)
   {
@@ -85,6 +84,7 @@ inline
 field<oT>::field(const subview_field<oT>& X)
   : n_rows(0)
   , n_cols(0)
+  , n_slices(0)
   , n_elem(0)
   , mem(0)
   {
@@ -116,6 +116,7 @@ inline
 field<oT>::field(const uword n_elem_in)
   : n_rows(0)
   , n_cols(0)
+  , n_slices(0)
   , n_elem(0)
   , mem(0)
   {
@@ -132,12 +133,30 @@ inline
 field<oT>::field(const uword n_rows_in, const uword n_cols_in)
   : n_rows(0)
   , n_cols(0)
+  , n_slices(0)
   , n_elem(0)
   , mem(0)
   {
   arma_extra_debug_sigprint_this(this);
   
   init(n_rows_in, n_cols_in);
+  }
+
+
+
+//! construct the field with the specified dimensions
+template<typename oT>
+inline
+field<oT>::field(const uword n_rows_in, const uword n_cols_in, const uword n_slices_in)
+  : n_rows(0)
+  , n_cols(0)
+  , n_slices(0)
+  , n_elem(0)
+  , mem(0)
+  {
+  arma_extra_debug_sigprint_this(this);
+  
+  init(n_rows_in, n_cols_in, n_slices_in);
   }
 
 
@@ -171,6 +190,19 @@ field<oT>::set_size(const uword n_rows_in, const uword n_cols_in)
 
 //! change the field to have the specified dimensions (data is not preserved)
 template<typename oT>
+inline
+void
+field<oT>::set_size(const uword n_rows_in, const uword n_cols_in, const uword n_slices_in)
+  {
+  arma_extra_debug_sigprint(arma_boost::format("n_rows_in = %d, n_cols_in = %d, n_slices_in = %d") % n_rows_in % n_cols_in % n_slices_in);
+  
+  init(n_rows_in, n_cols_in, n_slices_in);
+  }
+
+
+
+//! change the field to have the specified dimensions (data is not preserved)
+template<typename oT>
 template<typename oT2>
 inline
 void
@@ -178,7 +210,7 @@ field<oT>::copy_size(const field<oT2>& x)
   {
   arma_extra_debug_sigprint();
   
-  init(x.n_rows, x.n_cols);
+  init(x.n_rows, x.n_cols, x.n_slices);
   }
 
 
@@ -275,6 +307,30 @@ field<oT>::operator() (const uword in_row, const uword in_col) const
 
 
 
+//! element accessor; bounds checking not done when ARMA_NO_DEBUG is defined
+template<typename oT>
+arma_inline
+oT&
+field<oT>::operator() (const uword in_row, const uword in_col, const uword in_slice)
+  {
+  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols) || (in_slice >= n_slices)), "field::operator(): index out of bounds");
+  return (*mem[in_row + in_col*n_rows + in_slice*(n_rows*n_cols)]);
+  }
+
+
+
+//! element accessor; bounds checking not done when ARMA_NO_DEBUG is defined
+template<typename oT>
+arma_inline
+const oT&
+field<oT>::operator() (const uword in_row, const uword in_col, const uword in_slice) const
+  {
+  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols) || (in_slice >= n_slices)), "field::operator(): index out of bounds");
+  return (*mem[in_row + in_col*n_rows + in_slice*(n_rows*n_cols)]);
+  }
+
+
+
 //! element accessor; no bounds check
 template<typename oT>
 arma_inline
@@ -293,6 +349,28 @@ const oT&
 field<oT>::at(const uword in_row, const uword in_col) const
   {
   return (*mem[in_row + in_col*n_rows]);
+  }
+
+
+
+//! element accessor; no bounds check
+template<typename oT>
+arma_inline
+oT&
+field<oT>::at(const uword in_row, const uword in_col, const uword in_slice)
+  {
+  return (*mem[in_row + in_col*n_rows + in_slice*(n_rows*n_cols)]);
+  }
+
+
+
+//! element accessor; no bounds check
+template<typename oT>
+arma_inline
+const oT&
+field<oT>::at(const uword in_row, const uword in_col, const uword in_slice) const
+  {
+  return (*mem[in_row + in_col*n_rows + in_slice*(n_rows*n_cols)]);
   }
 
 
@@ -325,6 +403,8 @@ field<oT>::row(const uword row_num)
   {
   arma_extra_debug_sigprint();
   
+  arma_debug_check( (n_slices >= 2), "field::row(): field must be 2D" );
+
   arma_debug_check( (row_num >= n_rows), "field::row(): row out of bounds" );
   
   return subview_field<oT>(*this, row_num, 0, 1, n_cols);
@@ -340,6 +420,8 @@ field<oT>::row(const uword row_num) const
   {
   arma_extra_debug_sigprint();
   
+  arma_debug_check( (n_slices >= 2), "field::row(): field must be 2D" );
+
   arma_debug_check( (row_num >= n_rows), "field::row(): row out of bounds" );
   
   return subview_field<oT>(*this, row_num, 0, 1, n_cols);
@@ -355,6 +437,8 @@ field<oT>::col(const uword col_num)
   {
   arma_extra_debug_sigprint();
   
+  arma_debug_check( (n_slices >= 2), "field::col(): field must be 2D" );
+
   arma_debug_check( (col_num >= n_cols), "field::col(): out of bounds");
   
   return subview_field<oT>(*this, 0, col_num, n_rows, 1);
@@ -370,9 +454,41 @@ field<oT>::col(const uword col_num) const
   {
   arma_extra_debug_sigprint();
   
+  arma_debug_check( (n_slices >= 2), "field::col(): field must be 2D" );
+
   arma_debug_check( (col_num >= n_cols), "field::col(): out of bounds");
   
   return subview_field<oT>(*this, 0, col_num, n_rows, 1);
+  }
+
+
+
+//! creation of subview_field (slice of a field)
+template<typename oT>
+inline
+subview_field<oT>
+field<oT>::slice(const uword slice_num)
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_debug_check( (slice_num >= n_slices), "field::slice(): out of bounds");
+  
+  return subview_field<oT>(*this, 0, 0, slice_num, n_rows, n_cols, 1);
+  }
+
+
+
+//! creation of subview_field (slice of a field)
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::slice(const uword slice_num) const
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_debug_check( (slice_num >= n_slices), "field::slice(): out of bounds");
+  
+  return subview_field<oT>(*this, 0, 0, slice_num, n_rows, n_cols, 1);
   }
 
 
@@ -384,6 +500,8 @@ subview_field<oT>
 field<oT>::rows(const uword in_row1, const uword in_row2)
   {
   arma_extra_debug_sigprint();
+  
+  arma_debug_check( (n_slices >= 2), "field::rows(): field must be 2D" );
   
   arma_debug_check
     (
@@ -406,6 +524,8 @@ field<oT>::rows(const uword in_row1, const uword in_row2) const
   {
   arma_extra_debug_sigprint();
   
+  arma_debug_check( (n_slices >= 2), "field::rows(): field must be 2D" );
+  
   arma_debug_check
     (
     ( (in_row1 > in_row2) || (in_row2 >= n_rows) ),
@@ -426,6 +546,8 @@ subview_field<oT>
 field<oT>::cols(const uword in_col1, const uword in_col2)
   {
   arma_extra_debug_sigprint();
+  
+  arma_debug_check( (n_slices >= 2), "field::cols(): field must be 2D" );
   
   arma_debug_check
     (
@@ -448,6 +570,8 @@ field<oT>::cols(const uword in_col1, const uword in_col2) const
   {
   arma_extra_debug_sigprint();
   
+  arma_debug_check( (n_slices >= 2), "field::cols(): field must be 2D" );
+  
   arma_debug_check
     (
     ( (in_col1 > in_col2) || (in_col2 >= n_cols) ),
@@ -461,6 +585,48 @@ field<oT>::cols(const uword in_col1, const uword in_col2) const
 
 
 
+//! creation of subview_field (subfield comprised of specified slices)
+template<typename oT>
+inline
+subview_field<oT>
+field<oT>::slices(const uword in_slice1, const uword in_slice2)
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_debug_check
+    (
+    ( (in_slice1 > in_slice2) || (in_slice2 >= n_slices) ),
+    "field::slices(): indicies out of bounds or incorrectly used"
+    );
+  
+  const uword sub_n_slices = in_slice2 - in_slice1 + 1;
+  
+  return subview_field<oT>(*this, 0, 0, in_slice1, n_rows, n_cols, sub_n_slices);
+  }
+
+
+
+//! creation of subview_field (subfield comprised of specified slices)
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::slices(const uword in_slice1, const uword in_slice2) const
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_debug_check
+    (
+    ( (in_slice1 > in_slice2) || (in_slice2 >= n_slices) ),
+    "field::slices(): indicies out of bounds or incorrectly used"
+    );
+  
+  const uword sub_n_slices = in_slice2 - in_slice1 + 1;
+  
+  return subview_field<oT>(*this, 0, 0, in_slice1, n_rows, n_cols, sub_n_slices);
+  }
+
+
+
 //! creation of subview_field (subfield with arbitrary dimensions)
 template<typename oT>
 inline
@@ -468,6 +634,8 @@ subview_field<oT>
 field<oT>::subfield(const uword in_row1, const uword in_col1, const uword in_row2, const uword in_col2)
   {
   arma_extra_debug_sigprint();
+  
+  arma_debug_check( (n_slices >= 2), "field::subfield(): field must be 2D" );
   
   arma_debug_check
     (
@@ -491,6 +659,8 @@ field<oT>::subfield(const uword in_row1, const uword in_col1, const uword in_row
   {
   arma_extra_debug_sigprint();
   
+  arma_debug_check( (n_slices >= 2), "field::subfield(): field must be 2D" );
+  
   arma_debug_check
     (
     (in_row1 > in_row2) || (in_col1 > in_col2) || (in_row2 >= n_rows) || (in_col2 >= n_cols),
@@ -509,9 +679,165 @@ field<oT>::subfield(const uword in_row1, const uword in_col1, const uword in_row
 template<typename oT>
 inline
 subview_field<oT>
+field<oT>::subfield(const uword in_row1, const uword in_col1, const uword in_slice1, const uword in_row2, const uword in_col2, const uword in_slice2)
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_debug_check
+    (
+    (in_row1 > in_row2) || (in_col1 > in_col2) || (in_slice1 > in_slice2) || (in_row2 >= n_rows) || (in_col2 >= n_cols) || (in_slice2 >= n_slices),
+    "field::subfield(): indices out of bounds or incorrectly used"
+    );
+  
+  const uword sub_n_rows   = in_row2   - in_row1   + 1;
+  const uword sub_n_cols   = in_col2   - in_col1   + 1;
+  const uword sub_n_slices = in_slice2 - in_slice1 + 1;
+  
+  return subview_field<oT>(*this, in_row1, in_col1, in_slice1, sub_n_rows, sub_n_cols, sub_n_slices);
+  }
+
+
+
+//! creation of subview_field (subfield with arbitrary dimensions)
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::subfield(const uword in_row1, const uword in_col1, const uword in_slice1, const uword in_row2, const uword in_col2, const uword in_slice2) const
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_debug_check
+    (
+    (in_row1 > in_row2) || (in_col1 > in_col2) || (in_slice1 > in_slice2) || (in_row2 >= n_rows) || (in_col2 >= n_cols) || (in_slice2 >= n_slices),
+    "field::subfield(): indices out of bounds or incorrectly used"
+    );
+  
+  const uword sub_n_rows   = in_row2   - in_row1   + 1;
+  const uword sub_n_cols   = in_col2   - in_col1   + 1;
+  const uword sub_n_slices = in_slice2 - in_slice1 + 1;
+  
+  return subview_field<oT>(*this, in_row1, in_col1, in_slice1, sub_n_rows, sub_n_cols, sub_n_slices);
+  }
+
+
+
+//! creation of subview_field (subfield with arbitrary dimensions)
+template<typename oT>
+inline
+subview_field<oT>
+field<oT>::subfield(const uword in_row1, const uword in_col1, const SizeMat& s)
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_debug_check( (n_slices >= 2), "field::subfield(): field must be 2D" );
+  
+  const uword l_n_rows = n_rows;
+  const uword l_n_cols = n_cols;
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  arma_debug_check
+    (
+    ((in_row1 >= l_n_rows) || (in_col1 >= l_n_cols) || ((in_row1 + s_n_rows) > l_n_rows) || ((in_col1 + s_n_cols) > l_n_cols)),
+    "field::subfield(): indices or size out of bounds"
+    );
+  
+  return subview_field<oT>(*this, in_row1, in_col1, s_n_rows, s_n_cols);
+  }
+
+
+
+//! creation of subview_field (subfield with arbitrary dimensions)
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::subfield(const uword in_row1, const uword in_col1, const SizeMat& s) const
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_debug_check( (n_slices >= 2), "field::subfield(): field must be 2D" );
+  
+  const uword l_n_rows = n_rows;
+  const uword l_n_cols = n_cols;
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  arma_debug_check
+    (
+    ((in_row1 >= l_n_rows) || (in_col1 >= l_n_cols) || ((in_row1 + s_n_rows) > l_n_rows) || ((in_col1 + s_n_cols) > l_n_cols)),
+    "field::subfield(): indices or size out of bounds"
+    );
+  
+  return subview_field<oT>(*this, in_row1, in_col1, s_n_rows, s_n_cols);
+  }
+
+
+
+//! creation of subview_field (subfield with arbitrary dimensions)
+template<typename oT>
+inline
+subview_field<oT>
+field<oT>::subfield(const uword in_row1, const uword in_col1, const uword in_slice1, const SizeCube& s)
+  {
+  arma_extra_debug_sigprint();
+  
+  const uword l_n_rows   = n_rows;
+  const uword l_n_cols   = n_cols;
+  const uword l_n_slices = n_slices;
+  
+  const uword s_n_rows     = s.n_rows;
+  const uword s_n_cols     = s.n_cols;
+  const uword sub_n_slices = s.n_slices;
+  
+  arma_debug_check
+    (
+    ((in_row1 >= l_n_rows) || (in_col1 >= l_n_cols) || (in_slice1 >= l_n_slices) || ((in_row1 + s_n_rows) > l_n_rows) || ((in_col1 + s_n_cols) > l_n_cols) || ((in_slice1 + sub_n_slices) > l_n_slices)),
+    "field::subfield(): indices or size out of bounds"
+    );
+  
+  return subview_field<oT>(*this, in_row1, in_col1, in_slice1, s_n_rows, s_n_cols, sub_n_slices);
+  }
+
+
+
+//! creation of subview_field (subfield with arbitrary dimensions)
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::subfield(const uword in_row1, const uword in_col1, const uword in_slice1, const SizeCube& s) const
+  {
+  arma_extra_debug_sigprint();
+  
+  const uword l_n_rows = n_rows;
+  const uword l_n_cols = n_cols;
+  const uword l_n_slices = n_slices;
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  const uword sub_n_slices = s.n_slices;
+  
+  arma_debug_check
+    (
+    ((in_row1 >= l_n_rows) || (in_col1 >= l_n_cols) || (in_slice1 >= l_n_slices) || ((in_row1 + s_n_rows) > l_n_rows) || ((in_col1 + s_n_cols) > l_n_cols) || ((in_slice1 + sub_n_slices) > l_n_slices)),
+    "field::subfield(): indices or size out of bounds"
+    );
+  
+  return subview_field<oT>(*this, in_row1, in_col1, in_slice1, s_n_rows, s_n_cols, sub_n_slices);
+  }
+
+
+
+//! creation of subview_field (subfield with arbitrary dimensions)
+template<typename oT>
+inline
+subview_field<oT>
 field<oT>::subfield(const span& row_span, const span& col_span)
   {
   arma_extra_debug_sigprint();
+  
+  arma_debug_check( (n_slices >= 2), "field::subfield(): field must be 2D" );
   
   const bool row_all = row_span.whole;
   const bool col_all = col_span.whole;
@@ -549,6 +875,8 @@ field<oT>::subfield(const span& row_span, const span& col_span) const
   {
   arma_extra_debug_sigprint();
   
+  arma_debug_check( (n_slices >= 2), "field::subfield(): field must be 2D" );
+  
   const bool row_all = row_span.whole;
   const bool col_all = col_span.whole;
   
@@ -577,6 +905,94 @@ field<oT>::subfield(const span& row_span, const span& col_span) const
 
 
 
+//! creation of subview_field (subfield with arbitrary dimensions)
+template<typename oT>
+inline
+subview_field<oT>
+field<oT>::subfield(const span& row_span, const span& col_span, const span& slice_span)
+  {
+  arma_extra_debug_sigprint();
+  
+  const bool row_all   = row_span.whole;
+  const bool col_all   = col_span.whole;
+  const bool slice_all = slice_span.whole;
+  
+  const uword local_n_rows   = n_rows;
+  const uword local_n_cols   = n_cols;
+  const uword local_n_slices = n_slices;
+  
+  const uword in_row1    = row_all ? 0            : row_span.a;
+  const uword in_row2    =                          row_span.b;
+  const uword sub_n_rows = row_all ? local_n_rows : in_row2 - in_row1 + 1;
+  
+  const uword in_col1    = col_all ? 0            : col_span.a;
+  const uword in_col2    =                          col_span.b;
+  const uword sub_n_cols = col_all ? local_n_cols : in_col2 - in_col1 + 1;
+  
+  const uword in_slice1    = slice_all ? 0              : slice_span.a;
+  const uword in_slice2    =                              slice_span.b;
+  const uword sub_n_slices = slice_all ? local_n_slices : in_slice2 - in_slice1 + 1;
+
+  arma_debug_check
+    (
+    ( row_all ? false : ((in_row1 > in_row2) || (in_row2 >= local_n_rows)) )
+    ||
+    ( col_all ? false : ((in_col1 > in_col2) || (in_col2 >= local_n_cols)) )
+    ||
+    ( slice_all ? false : ((in_slice1 > in_slice2) || (in_slice2 >= local_n_slices)) )
+    ,
+    "field::subfield(): indices out of bounds or incorrectly used"
+    );
+  
+  return subview_field<oT>(*this, in_row1, in_col1, in_slice1, sub_n_rows, sub_n_cols, sub_n_slices);
+  }
+
+
+
+//! creation of subview_field (subfield with arbitrary dimensions)
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::subfield(const span& row_span, const span& col_span, const span& slice_span) const
+  {
+  arma_extra_debug_sigprint();
+  
+  const bool row_all   = row_span.whole;
+  const bool col_all   = col_span.whole;
+  const bool slice_all = slice_span.whole;
+  
+  const uword local_n_rows   = n_rows;
+  const uword local_n_cols   = n_cols;
+  const uword local_n_slices = n_slices;
+  
+  const uword in_row1    = row_all ? 0            : row_span.a;
+  const uword in_row2    =                          row_span.b;
+  const uword sub_n_rows = row_all ? local_n_rows : in_row2 - in_row1 + 1;
+  
+  const uword in_col1    = col_all ? 0            : col_span.a;
+  const uword in_col2    =                          col_span.b;
+  const uword sub_n_cols = col_all ? local_n_cols : in_col2 - in_col1 + 1;
+  
+  const uword in_slice1    = slice_all ? 0              : slice_span.a;
+  const uword in_slice2    =                              slice_span.b;
+  const uword sub_n_slices = slice_all ? local_n_slices : in_slice2 - in_slice1 + 1;
+
+  arma_debug_check
+    (
+    ( row_all ? false : ((in_row1 > in_row2) || (in_row2 >= local_n_rows)) )
+    ||
+    ( col_all ? false : ((in_col1 > in_col2) || (in_col2 >= local_n_cols)) )
+    ||
+    ( slice_all ? false : ((in_slice1 > in_slice2) || (in_slice2 >= local_n_slices)) )
+    ,
+    "field::subfield(): indices out of bounds or incorrectly used"
+    );
+  
+  return subview_field<oT>(*this, in_row1, in_col1, in_slice1, sub_n_rows, sub_n_cols, sub_n_slices);
+  }
+
+
+
 template<typename oT>
 inline
 subview_field<oT>
@@ -597,6 +1013,78 @@ field<oT>::operator()(const span& row_span, const span& col_span) const
   arma_extra_debug_sigprint();
   
   return (*this).subfield(row_span, col_span);
+  }
+
+
+
+template<typename oT>
+inline
+subview_field<oT>
+field<oT>::operator()(const span& row_span, const span& col_span, const span& slice_span)
+  {
+  arma_extra_debug_sigprint();
+  
+  return (*this).subfield(row_span, col_span, slice_span);
+  }
+
+
+
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::operator()(const span& row_span, const span& col_span, const span& slice_span) const
+  {
+  arma_extra_debug_sigprint();
+  
+  return (*this).subfield(row_span, col_span, slice_span);
+  }
+
+
+
+template<typename oT>
+inline
+subview_field<oT>
+field<oT>::operator()(const uword in_row1, const uword in_col1, const SizeMat& s)
+  {
+  arma_extra_debug_sigprint();
+  
+  return (*this).subfield(in_row1, in_col1, s);
+  }
+
+
+
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::operator()(const uword in_row1, const uword in_col1, const SizeMat& s) const
+  {
+  arma_extra_debug_sigprint();
+  
+  return (*this).subfield(in_row1, in_col1, s);
+  }
+
+
+
+template<typename oT>
+inline
+subview_field<oT>
+field<oT>::operator()(const uword in_row1, const uword in_col1, const uword in_slice1, const SizeCube& s)
+  {
+  arma_extra_debug_sigprint();
+  
+  return (*this).subfield(in_row1, in_col1, in_slice1, s);
+  }
+
+
+
+template<typename oT>
+inline
+const subview_field<oT>
+field<oT>::operator()(const uword in_row1, const uword in_col1, const uword in_slice1, const SizeCube& s) const
+  {
+  arma_extra_debug_sigprint();
+  
+  return (*this).subfield(in_row1, in_col1, in_slice1, s);
   }
 
 
@@ -687,7 +1175,7 @@ field<oT>::reset()
   {
   arma_extra_debug_sigprint();
   
-  init(0,0);
+  init(0,0,0);
   }
 
 
@@ -828,6 +1316,86 @@ field<oT>::in_range(const span& row_span, const span& col_span) const
   const bool cols_ok = col_span.whole ? true : ( (in_col1 <= in_col2) && (in_col2 < n_cols) );
   
   return ( (rows_ok == true) && (cols_ok == true) );
+  }
+
+
+
+template<typename oT>
+arma_inline
+arma_warn_unused
+bool
+field<oT>::in_range(const uword in_row, const uword in_col, const SizeMat& s) const
+  {
+  const uword l_n_rows = n_rows;
+  const uword l_n_cols = n_cols;
+  
+  if( (in_row >= l_n_rows) || (in_col >= l_n_cols) || ((in_row + s.n_rows) > l_n_rows) || ((in_col + s.n_cols) > l_n_cols) )
+    {
+    return false;
+    }
+  else
+    {
+    return true;
+    }
+  }
+
+
+
+template<typename oT>
+arma_inline
+arma_warn_unused
+bool
+field<oT>::in_range(const uword in_row, const uword in_col, const uword in_slice) const
+  {
+  return ( (in_row < n_rows) && (in_col < n_cols) && (in_slice < n_slices) );
+  }
+
+
+
+template<typename oT>
+arma_inline
+arma_warn_unused
+bool
+field<oT>::in_range(const span& row_span, const span& col_span, const span& slice_span) const
+  {
+  arma_extra_debug_sigprint();
+  
+  const uword in_row1 = row_span.a;
+  const uword in_row2 = row_span.b;
+
+  const uword in_col1 = col_span.a;
+  const uword in_col2 = col_span.b;
+  
+  const uword in_slice1 = slice_span.a;
+  const uword in_slice2 = slice_span.b;
+  
+  const bool   rows_ok =   row_span.whole ? true : ( (in_row1   <= in_row2  ) && (in_row2   < n_rows  ) );
+  const bool   cols_ok =   col_span.whole ? true : ( (in_col1   <= in_col2  ) && (in_col2   < n_cols  ) );
+  const bool slices_ok = slice_span.whole ? true : ( (in_slice1 <= in_slice2) && (in_slice2 < n_slices) );
+  
+  return ( (rows_ok == true) && (cols_ok == true) && (slices_ok == true) );
+  }
+
+
+
+template<typename oT>
+arma_inline
+arma_warn_unused
+bool
+field<oT>::in_range(const uword in_row, const uword in_col, const uword in_slice, const SizeCube& s) const
+  {
+  const uword l_n_rows = n_rows;
+  const uword l_n_cols = n_cols;
+  const uword l_n_slices = n_slices;
+  
+  if( (in_row >= l_n_rows) || (in_col >= l_n_cols) || (in_slice >= l_n_slices) || ((in_row + s.n_rows) > l_n_rows) || ((in_col + s.n_cols) > l_n_cols) || ((in_slice + s.n_slices) > l_n_slices) )
+    {
+    return false;
+    }
+  else
+    {
+    return true;
+    }
   }
 
 
@@ -1008,20 +1576,42 @@ field<oT>::init(const field<oT>& x)
   
   if(this != &x)
     {
-    const uword x_n_rows = x.n_rows;
-    const uword x_n_cols = x.n_cols;
+    const uword x_n_rows   = x.n_rows;
+    const uword x_n_cols   = x.n_cols;
+    const uword x_n_slices = x.n_slices;
     
-    init(x_n_rows, x_n_cols);
+    init(x_n_rows, x_n_cols, x_n_slices);
     
     field& t = *this;
     
-    for(uword ucol=0; ucol < x_n_cols; ++ucol)
-    for(uword urow=0; urow < x_n_rows; ++urow)
+    if(x_n_slices == 1)
       {
-      t.at(urow,ucol) = x.at(urow,ucol);
+      for(uword ucol=0; ucol < x_n_cols; ++ucol)
+      for(uword urow=0; urow < x_n_rows; ++urow)
+        {
+        t.at(urow,ucol) = x.at(urow,ucol);
+        }
+      }
+    else
+      {
+      for(uword uslice=0; uslice < x_n_slices; ++uslice)
+      for(uword ucol=0;   ucol   < x_n_cols;   ++ucol  )
+      for(uword urow=0;   urow   < x_n_rows;   ++urow  )
+        {
+        t.at(urow,ucol,uslice) = x.at(urow,ucol,uslice);
+        }
       }
     }
-  
+  }
+
+
+
+template<typename oT>
+inline
+void
+field<oT>::init(const uword n_rows_in, const uword n_cols_in)
+  {
+  (*this).init(n_rows_in, n_cols_in, 1);
   }
 
 
@@ -1030,28 +1620,29 @@ field<oT>::init(const field<oT>& x)
 template<typename oT>
 inline
 void
-field<oT>::init(const uword n_rows_in, const uword n_cols_in)
+field<oT>::init(const uword n_rows_in, const uword n_cols_in, const uword n_slices_in)
   {
-  arma_extra_debug_sigprint( arma_boost::format("n_rows_in = %d, n_cols_in = %d") % n_rows_in % n_cols_in );
+  arma_extra_debug_sigprint( arma_boost::format("n_rows_in = %d, n_cols_in = %d, n_slices_in = %d") % n_rows_in % n_cols_in % n_slices_in );
   
   arma_debug_check
     (
       (
-      ( (n_rows_in > ARMA_MAX_UHWORD) || (n_cols_in > ARMA_MAX_UHWORD) )
-        ? ( (float(n_rows_in) * float(n_cols_in)) > float(ARMA_MAX_UWORD) )
+      ( (n_rows_in > 0x0FFF) || (n_cols_in > 0x0FFF) || (n_slices_in > 0xFF) )
+        ? ( (float(n_rows_in) * float(n_cols_in) * float(n_slices_in)) > float(ARMA_MAX_UWORD) )
         : false
       ),
-    "field::init(): requested size is too large"
+    "field::init(): requested size is too large; suggest to enable ARMA_64BIT_WORD"
     );
   
-  const uword n_elem_new = n_rows_in * n_cols_in;
+  const uword n_elem_new = n_rows_in * n_cols_in * n_slices_in;
   
   if(n_elem == n_elem_new)
     {
     // delete_objects();
     // create_objects();
-    access::rw(n_rows) = n_rows_in;
-    access::rw(n_cols) = n_cols_in;
+    access::rw(n_rows)   = n_rows_in;
+    access::rw(n_cols)   = n_cols_in;
+    access::rw(n_slices) = n_slices_in;
     }
   else
     {
@@ -1076,13 +1667,15 @@ field<oT>::init(const uword n_rows_in, const uword n_cols_in)
     
     if(n_elem_new == 0)
       {
-      access::rw(n_rows) = 0;
-      access::rw(n_cols) = 0;
+      access::rw(n_rows)   = 0;
+      access::rw(n_cols)   = 0;
+      access::rw(n_slices) = 0;
       }
     else
       {
-      access::rw(n_rows) = n_rows_in;
-      access::rw(n_cols) = n_cols_in;
+      access::rw(n_rows)   = n_rows_in;
+      access::rw(n_cols)   = n_cols_in;
+      access::rw(n_slices) = n_slices_in;
       }
     
     create_objects();
@@ -1524,7 +2117,7 @@ field_aux::save(const field<oT>&, const std::string&, const file_type, std::stri
   {
   arma_extra_debug_sigprint();
   
-  err_msg = " [sorry, saving/loading this type of field is currently not supported] filename = ";
+  err_msg = " [saving/loading this type of field is currently not supported] filename = ";
   
   return false;
   }
@@ -1538,7 +2131,7 @@ field_aux::save(const field<oT>&, std::ostream&, const file_type, std::string& e
   {
   arma_extra_debug_sigprint();
   
-  err_msg = " [sorry, saving/loading this type of field is currently not supported] filename = ";
+  err_msg = " [saving/loading this type of field is currently not supported] filename = ";
   
   return false;
   }
@@ -1552,7 +2145,7 @@ field_aux::load(field<oT>&, const std::string&, const file_type, std::string& er
   {
   arma_extra_debug_sigprint();
   
-  err_msg = " [sorry, saving/loading this type of field is currently not supported] filename = ";
+  err_msg = " [saving/loading this type of field is currently not supported] filename = ";
   
   return false;
   }
@@ -1566,7 +2159,7 @@ field_aux::load(field<oT>&, std::istream&, const file_type, std::string& err_msg
   {
   arma_extra_debug_sigprint();
   
-  err_msg = " [sorry, saving/loading this type of field is currently not supported] filename = ";
+  err_msg = " [saving/loading this type of field is currently not supported] filename = ";
   
   return false;
   }
@@ -1799,11 +2392,11 @@ field_aux::save(const field< Row<eT> >& x, const std::string& name, const file_t
   switch(type)
     {
     case arma_binary:
-      return diskio::save_arma_binary(x, name, err_msg);
+      return diskio::save_arma_binary(x, name);
       break;
       
     case ppm_binary:
-      return diskio::save_ppm_binary(x, name, err_msg);
+      return diskio::save_ppm_binary(x, name);
       break;
     
     default:
@@ -1824,11 +2417,11 @@ field_aux::save(const field< Row<eT> >& x, std::ostream& os, const file_type typ
   switch(type)
     {
     case arma_binary:
-      return diskio::save_arma_binary(x, os, err_msg);
+      return diskio::save_arma_binary(x, os);
       break;
       
     case ppm_binary:
-      return diskio::save_ppm_binary(x, os, err_msg);
+      return diskio::save_ppm_binary(x, os);
       break;
     
     default:
@@ -1907,11 +2500,7 @@ field_aux::save(const field< Cube<eT> >& x, const std::string& name, const file_
   switch(type)
     {
     case arma_binary:
-      return diskio::save_arma_binary(x, name, err_msg);
-      break;
-      
-    case ppm_binary:
-      return diskio::save_ppm_binary(x, name, err_msg);
+      return diskio::save_arma_binary(x, name);
       break;
     
     default:
@@ -1932,11 +2521,7 @@ field_aux::save(const field< Cube<eT> >& x, std::ostream& os, const file_type ty
   switch(type)
     {
     case arma_binary:
-      return diskio::save_arma_binary(x, os, err_msg);
-      break;
-      
-    case ppm_binary:
-      return diskio::save_ppm_binary(x, os, err_msg);
+      return diskio::save_arma_binary(x, os);
       break;
     
     default:
@@ -1957,15 +2542,8 @@ field_aux::load(field< Cube<eT> >& x, const std::string& name, const file_type t
   switch(type)
     {
     case auto_detect:
-      return diskio::load_auto_detect(x, name, err_msg);
-      break;
-    
     case arma_binary:
       return diskio::load_arma_binary(x, name, err_msg);
-      break;
-      
-    case ppm_binary:
-      return diskio::load_ppm_binary(x, name, err_msg);
       break;
     
     default:
@@ -1986,17 +2564,10 @@ field_aux::load(field< Cube<eT> >& x, std::istream& is, const file_type type, st
   switch(type)
     {
     case auto_detect:
-      return diskio::load_auto_detect(x, is, err_msg);
-      break;
-    
     case arma_binary:
       return diskio::load_arma_binary(x, is, err_msg);
       break;
       
-    case ppm_binary:
-      return diskio::load_ppm_binary(x, is, err_msg);
-      break;
-    
     default:
       err_msg = " [unsupported type] filename = ";
       return false;

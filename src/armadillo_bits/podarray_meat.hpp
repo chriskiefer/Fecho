@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -262,7 +262,7 @@ podarray<eT>::zeros()
   {
   arma_extra_debug_sigprint();
   
-  fill(eT(0));
+  arrayops::fill_zeros(memptr(), n_elem);
   }
 
 
@@ -276,7 +276,7 @@ podarray<eT>::zeros(const uword new_n_elem)
   
   init_warm(new_n_elem);
   
-  fill(eT(0));
+  arrayops::fill_zeros(memptr(), n_elem);
   }
 
 
@@ -361,8 +361,6 @@ podarray<eT>::init_cold(const uword new_n_elem)
   else
     {
     mem = memory::acquire<eT>(new_n_elem);
-    
-    arma_check_bad_alloc( (mem == 0), "arma::podarray: out of memory" );
     }
   }
 
@@ -392,8 +390,6 @@ podarray<eT>::init_warm(const uword new_n_elem)
   else
     {
     mem = memory::acquire<eT>(new_n_elem);
-    
-    arma_check_bad_alloc( (mem == 0), "arma::podarray: out of memory" );
     }
   
   access::rw(n_elem) = new_n_elem;

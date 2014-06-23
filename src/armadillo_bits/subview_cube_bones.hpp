@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2013 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2013 Conrad Sanderson
+// Copyright (C) 2008-2013 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,6 +42,7 @@ class subview_cube : public BaseCube<eT, subview_cube<eT> >
   
   inline ~subview_cube();
   
+  inline void operator=  (const eT val);
   inline void operator+= (const eT val);
   inline void operator-= (const eT val);
   inline void operator*= (const eT val);
@@ -84,6 +85,10 @@ class subview_cube : public BaseCube<eT, subview_cube<eT> >
   inline void fill(const eT val);
   inline void zeros();
   inline void ones();
+  inline void randu();
+  inline void randn();
+  
+  inline eT  at_alt    (const uword i) const;
   
   inline eT& operator[](const uword i);
   inline eT  operator[](const uword i) const;

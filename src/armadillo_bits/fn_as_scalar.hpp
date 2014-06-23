@@ -1,5 +1,5 @@
-// Copyright (C) 2010-2013 NICTA (www.nicta.com.au)
 // Copyright (C) 2010-2013 Conrad Sanderson
+// Copyright (C) 2010-2013 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -45,7 +45,7 @@ as_scalar_redirect<N>::apply(const T1& X)
   {
   arma_extra_debug_sigprint();
   
-  typedef typename T1::elem_type eT;
+  // typedef typename T1::elem_type eT;
   
   const Proxy<T1> P(X);
   
@@ -68,11 +68,10 @@ as_scalar_redirect<2>::apply(const Glue<T1, T2, glue_times>& X)
   // T1 must result in a matrix with one row
   // T2 must result in a matrix with one column
   
-  const bool has_all_mat        = is_Mat<T1>::value             && is_Mat<T2>::value; 
-  const bool has_op_htrans2     = is_op_htrans2<T1>::value      || is_op_htrans2<T2>::value;
-  const bool prefer_at_accessor = Proxy<T1>::prefer_at_accessor || Proxy<T2>::prefer_at_accessor;
+  const bool has_all_mat        = (is_Mat<T1>::value || is_Mat_trans<T1>::value) && (is_Mat<T2>::value || is_Mat_trans<T2>::value);
+  const bool prefer_at_accessor = Proxy<T1>::prefer_at_accessor                  || Proxy<T2>::prefer_at_accessor;
   
-  const bool do_partial_unwrap = has_all_mat || has_op_htrans2 || prefer_at_accessor;
+  const bool do_partial_unwrap = has_all_mat || prefer_at_accessor;
   
   if(do_partial_unwrap == true)
     {
@@ -317,7 +316,7 @@ as_scalar(const Base<typename T1::elem_type,T1>& X)
   {
   arma_extra_debug_sigprint();
   
-  typedef typename T1::elem_type eT;
+  // typedef typename T1::elem_type eT;
   
   const Proxy<T1> P(X.get_ref());
   
@@ -365,10 +364,10 @@ as_scalar(const eGlue<T1, T2, eglue_type>& X)
   
   // the optimiser will keep only one return statement
   
-       if(is_same_type<eglue_type, eglue_plus >::value == true) { return a + b; }
-  else if(is_same_type<eglue_type, eglue_minus>::value == true) { return a - b; }
-  else if(is_same_type<eglue_type, eglue_div  >::value == true) { return a / b; }
-  else if(is_same_type<eglue_type, eglue_schur>::value == true) { return a * b; }
+       if(is_same_type<eglue_type, eglue_plus >::yes) { return a + b; }
+  else if(is_same_type<eglue_type, eglue_minus>::yes) { return a - b; }
+  else if(is_same_type<eglue_type, eglue_div  >::yes) { return a / b; }
+  else if(is_same_type<eglue_type, eglue_schur>::yes) { return a * b; }
   }
 
 
@@ -381,7 +380,7 @@ as_scalar(const BaseCube<typename T1::elem_type,T1>& X)
   {
   arma_extra_debug_sigprint();
   
-  typedef typename T1::elem_type eT;
+  // typedef typename T1::elem_type eT;
   
   const ProxyCube<T1> P(X.get_ref());
   

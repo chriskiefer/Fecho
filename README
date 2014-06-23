@@ -1,3 +1,16 @@
+  o__ __o__/_                      o                      
+ <|    v                          <|>                     
+ < >                              / >                     
+  |         o__  __o       __o__  \o__ __o      o__ __o   
+  o__/_    /v      |>     />  \    |     v\    /v     v\  
+  |       />      //    o/        / \     <\  />       <\ 
+ <o>      \o    o/     <|         \o/     o/  \         / 
+  |        v\  /v __o   \\         |     <|    o       o  
+ / \        <\/> __/>    _\o__</  / \    / \   <\__ __/>  
+                                                          
+                                                          
+                                                          
+
 Fecho: an C++ Echo State Network library.
 
 The library is optimised for high-performance realtime use in interactive audio and multimedia scenarios, along with the conventional ML uses for ESNs.
@@ -6,9 +19,10 @@ Main.cpp gives examples of use.
 
 Fecho is intended to be cross-platform, but up until now has only been tested on OSX.
 
+There's a Pure Data object in the PD folder.
+
 Future additions may include:
 
-- ridge regression training
 - small world network topology
 - multi-frequency techniques
 - examples for sound synthesis and audio processing

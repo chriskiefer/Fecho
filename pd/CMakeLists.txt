@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 set(EXT_NAME fechopd)
 project (${EXT_NAME})
 set(FECHO_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+set(CMAKE_OSX_ARCHITECTURES $(ARCHS_STANDARD_32_64_BIT))
 include_directories(${FECHO_SRC})
 
 set(PD_SRC /Users/chris/src/pd-extended/pd/src)

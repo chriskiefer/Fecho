@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,8 +29,8 @@ class podarray
   
   
   protected:
-  //! Internal memory, to avoid calling the 'new' operator for small amounts of memory.
-  arma_aligned eT mem_local[ podarray_prealloc_n_elem::val ];
+  //! internal memory, to avoid calling the 'new' operator for small amounts of memory.
+  arma_align_mem eT mem_local[ podarray_prealloc_n_elem::val ];
   
   
   public:

@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,7 +14,7 @@ inline
 double
 randn()
   {
-  return double(eop_aux_randn<double>());
+  return double(arma_rng::randn<double>());
   }
 
 
@@ -23,7 +23,7 @@ inline
 typename arma_scalar_only<eT>::result
 randn()
   {
-  return eT(eop_aux_randn<eT>());
+  return eT(arma_rng::randn<eT>());
   }
 
 

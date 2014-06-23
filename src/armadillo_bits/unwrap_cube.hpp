@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2010 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2010 Conrad Sanderson
+// Copyright (C) 2008-2010 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,6 +56,8 @@ class unwrap_cube< Cube<eT> >
 template<typename T1>
 class unwrap_cube_check
   {
+  public:
+  
   typedef typename T1::elem_type eT;
   
   inline

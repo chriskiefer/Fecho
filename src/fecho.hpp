@@ -248,6 +248,7 @@ namespace Fecho {
         Simulator(Reservoir<T> &_net, ReadOut<T> &_ro) {
             init(_net, _ro);
         }
+        ~Simulator() {}
         
         void init(Reservoir<T> &_net, ReadOut<T> &_ro) {
             net = &_net;
@@ -327,18 +328,18 @@ namespace Fecho {
             leakyX.fill(0);
         }
         
-        inline void simulate(Col<T> inputs) {
+        inline virtual void simulate(Col<T> inputs) {
             //(1-alpha)Xn
-            leakyX = *this->x * alpha;
+            leakyX = *this->x * oneMinusAlpha;
             this->simulateOneEpoch(inputs);
-            *this->x = (oneMinusAlpha * *this->x) + leakyX;
+            *this->x = *this->x + leakyX;
             for(int i=0; i < this->readOuts.size(); i++) {
                 this->readOuts[i]->update();
             }
         }
         
-        inline void setLeakRate(T newRate) {alpha = 1.0 - newRate;}
-        inline T getLeakRate() {return 1.0 - alpha;}
+        inline void setLeakRate(T newRate) {alpha = newRate; oneMinusAlpha = 1.0 - alpha;}
+        inline T getLeakRate() {return oneMinusAlpha;}
     protected:
         T alpha, oneMinusAlpha;
         Col<T> leakyX;

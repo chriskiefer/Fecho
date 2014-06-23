@@ -1,5 +1,5 @@
-// Copyright (C) 2010-2012 NICTA (www.nicta.com.au)
 // Copyright (C) 2010-2012 Conrad Sanderson
+// Copyright (C) 2010-2012 NICTA (www.nicta.com.au)
 // Copyright (C) 2011 Stanislav Funiak
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
@@ -62,11 +62,6 @@ class span : public span_base<>
     , whole(false)
     {
     }
-  
-  
-  #if defined(ARMA_USE_CXX11)
-    span(const double in_a) = delete;
-  #endif
   
   
   inline

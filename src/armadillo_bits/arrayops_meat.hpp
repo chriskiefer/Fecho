@@ -1,5 +1,5 @@
-// Copyright (C) 2011-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2011-2012 Conrad Sanderson
+// Copyright (C) 2011-2014 Conrad Sanderson
+// Copyright (C) 2011-2014 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,106 +17,43 @@ arma_inline
 void
 arrayops::copy(eT* dest, const eT* src, const uword n_elem)
   {
-  switch(n_elem)
+  if( (n_elem <= 16) && (is_cx<eT>::no) )
     {
-    default:
-      arrayops::copy_big(dest, src, n_elem);
-      break;
-    case 8:
-      dest[7] = src[7];
-    case 7:
-      dest[6] = src[6];
-    case 6:
-      dest[5] = src[5];
-    case 5:
-      dest[4] = src[4];
-    case 4:
-      dest[3] = src[3];
-    case 3:
-      dest[2] = src[2];
-    case 2:
-      dest[1] = src[1];
-    case 1:
-      dest[0] = src[0];
+    arrayops::copy_small(dest, src, n_elem);
+    }
+  else
+    {
+    std::memcpy(dest, src, n_elem*sizeof(eT));
     }
   }
 
 
 
 template<typename eT>
+arma_hot
 inline
 void
-arrayops::copy_big(eT* dest, const eT* src, const uword n_elem)
+arrayops::copy_small(eT* dest, const eT* src, const uword n_elem)
   {
   switch(n_elem)
     {
-    default:
-      std::memcpy(dest, src, n_elem*sizeof(eT));
-      break;
-    case 32:
-      dest[31] = src[31];
-    case 31:
-      dest[30] = src[30];
-    case 30:
-      dest[29] = src[29];
-    case 29:
-      dest[28] = src[28];
-    case 28:
-      dest[27] = src[27];
-    case 27:
-      dest[26] = src[26];
-    case 26:
-      dest[25] = src[25];
-    case 25:
-      dest[24] = src[24];
-    case 24:
-      dest[23] = src[23];
-    case 23:
-      dest[22] = src[22];
-    case 22:
-      dest[21] = src[21];
-    case 21:
-      dest[20] = src[20];
-    case 20:
-      dest[19] = src[19];
-    case 19:
-      dest[18] = src[18];
-    case 18:
-      dest[17] = src[17];
-    case 17:
-      dest[16] = src[16];
-    case 16:
-      dest[15] = src[15];
-    case 15:
-      dest[14] = src[14];
-    case 14:
-      dest[13] = src[13];
-    case 13:
-      dest[12] = src[12];
-    case 12:
-      dest[11] = src[11];
-    case 11:
-      dest[10] = src[10];
-    case 10:
-      dest[9] = src[9];
-    case 9:
-      dest[8] = src[8];
-    case 8:
-      dest[7] = src[7];
-    case 7:
-      dest[6] = src[6];
-    case 6:
-      dest[5] = src[5];
-    case 5:
-      dest[4] = src[4];
-    case 4:
-      dest[3] = src[3];
-    case 3:
-      dest[2] = src[2];
-    case 2:
-      dest[1] = src[1];
-    case 1:
-      dest[0] = src[0];
+    case 16:  dest[15] = src[15];
+    case 15:  dest[14] = src[14];
+    case 14:  dest[13] = src[13];
+    case 13:  dest[12] = src[12];
+    case 12:  dest[11] = src[11];
+    case 11:  dest[10] = src[10];
+    case 10:  dest[ 9] = src[ 9];
+    case  9:  dest[ 8] = src[ 8];
+    case  8:  dest[ 7] = src[ 7];
+    case  7:  dest[ 6] = src[ 6];
+    case  6:  dest[ 5] = src[ 5];
+    case  5:  dest[ 4] = src[ 4];
+    case  4:  dest[ 3] = src[ 3];
+    case  3:  dest[ 2] = src[ 2];
+    case  2:  dest[ 1] = src[ 1];
+    case  1:  dest[ 0] = src[ 0];
+    default:  ;
     }
   }
 
@@ -205,6 +142,17 @@ arrayops::copy_backwards(eT* dest, const eT* src, const uword n_elem)
     case 0:
       ;
     }
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::fill_zeros(eT* dest, const uword n_elem)
+  {
+  arrayops::inplace_set(dest, eT(0), n_elem);
   }
 
 
@@ -331,20 +279,33 @@ inline
 void
 arrayops::inplace_plus(eT* dest, const eT* src, const uword n_elem)
   {
-  uword i,j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if(memory::is_aligned(dest))
     {
-    const eT tmp_i = src[i];
-    const eT tmp_j = src[j];
+    memory::mark_as_aligned(dest);
     
-    dest[i] += tmp_i;
-    dest[j] += tmp_j;
+    if(memory::is_aligned(src))
+      {
+      memory::mark_as_aligned(src);
+      
+      arrayops::inplace_plus_base(dest, src, n_elem);
+      }
+    else
+      {
+      arrayops::inplace_plus_base(dest, src, n_elem);
+      }
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] += src[i];
+    if(memory::is_aligned(src))
+      {
+      memory::mark_as_aligned(src);
+      
+      arrayops::inplace_plus_base(dest, src, n_elem);
+      }
+    else
+      {
+      arrayops::inplace_plus_base(dest, src, n_elem);
+      }
     }
   }
 
@@ -356,20 +317,33 @@ inline
 void
 arrayops::inplace_minus(eT* dest, const eT* src, const uword n_elem)
   {
-  uword i,j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if(memory::is_aligned(dest))
     {
-    const eT tmp_i = src[i];
-    const eT tmp_j = src[j];
+    memory::mark_as_aligned(dest);
     
-    dest[i] -= tmp_i;
-    dest[j] -= tmp_j;
+    if(memory::is_aligned(src))
+      {
+      memory::mark_as_aligned(src);
+      
+      arrayops::inplace_minus_base(dest, src, n_elem);
+      }
+    else
+      {
+      arrayops::inplace_minus_base(dest, src, n_elem);
+      }
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] -= src[i];
+    if(memory::is_aligned(src))
+      {
+      memory::mark_as_aligned(src);
+      
+      arrayops::inplace_minus_base(dest, src, n_elem);
+      }
+    else
+      {
+      arrayops::inplace_minus_base(dest, src, n_elem);
+      }
     }
   }
 
@@ -381,20 +355,33 @@ inline
 void
 arrayops::inplace_mul(eT* dest, const eT* src, const uword n_elem)
   {
-  uword i,j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if(memory::is_aligned(dest))
     {
-    const eT tmp_i = src[i];
-    const eT tmp_j = src[j];
+    memory::mark_as_aligned(dest);
     
-    dest[i] *= tmp_i;
-    dest[j] *= tmp_j;
+    if(memory::is_aligned(src))
+      {
+      memory::mark_as_aligned(src);
+      
+      arrayops::inplace_mul_base(dest, src, n_elem);
+      }
+    else
+      {
+      arrayops::inplace_mul_base(dest, src, n_elem);
+      }
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] *= src[i];
+    if(memory::is_aligned(src))
+      {
+      memory::mark_as_aligned(src);
+      
+      arrayops::inplace_mul_base(dest, src, n_elem);
+      }
+    else
+      {
+      arrayops::inplace_mul_base(dest, src, n_elem);
+      }
     }
   }
 
@@ -406,21 +393,178 @@ inline
 void
 arrayops::inplace_div(eT* dest, const eT* src, const uword n_elem)
   {
-  uword i,j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if(memory::is_aligned(dest))
     {
-    const eT tmp_i = src[i];
-    const eT tmp_j = src[j];
+    memory::mark_as_aligned(dest);
     
-    dest[i] /= tmp_i;
-    dest[j] /= tmp_j;
+    if(memory::is_aligned(src))
+      {
+      memory::mark_as_aligned(src);
+      
+      arrayops::inplace_div_base(dest, src, n_elem);
+      }
+    else
+      {
+      arrayops::inplace_div_base(dest, src, n_elem);
+      }
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] /= src[i];
+    if(memory::is_aligned(src))
+      {
+      memory::mark_as_aligned(src);
+      
+      arrayops::inplace_div_base(dest, src, n_elem);
+      }
+    else
+      {
+      arrayops::inplace_div_base(dest, src, n_elem);
+      }
     }
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_plus_base(eT* dest, const eT* src, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] += src[i];
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      const eT tmp_i = src[i];
+      const eT tmp_j = src[j];
+      
+      dest[i] += tmp_i;
+      dest[j] += tmp_j;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] += src[i];
+      }
+    }
+  #endif
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_minus_base(eT* dest, const eT* src, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] -= src[i];
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      const eT tmp_i = src[i];
+      const eT tmp_j = src[j];
+      
+      dest[i] -= tmp_i;
+      dest[j] -= tmp_j;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] -= src[i];
+      }
+    }
+  #endif
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_mul_base(eT* dest, const eT* src, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] *= src[i];
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      const eT tmp_i = src[i];
+      const eT tmp_j = src[j];
+      
+      dest[i] *= tmp_i;
+      dest[j] *= tmp_j;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] *= src[i];
+      }
+    }
+  #endif
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_div_base(eT* dest, const eT* src, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] /= src[i];
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      const eT tmp_i = src[i];
+      const eT tmp_j = src[j];
+      
+      dest[i] /= tmp_i;
+      dest[j] /= tmp_j;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] /= src[i];
+      }
+    }
+  #endif
   }
 
 
@@ -431,17 +575,94 @@ inline
 void
 arrayops::inplace_set(eT* dest, const eT val, const uword n_elem)
   {
-  uword i,j;
+  typedef typename get_pod_type<eT>::result pod_type;
   
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if( (n_elem <= 16) && (is_cx<eT>::no) )
     {
-    dest[i] = val;
-    dest[j] = val;
+    arrayops::inplace_set_small(dest, val, n_elem);
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] = val;
+    if( (val == eT(0)) && (std::numeric_limits<eT>::is_integer || (std::numeric_limits<pod_type>::is_iec559 && is_real<pod_type>::value)) )
+      {
+      std::memset(dest, 0, sizeof(eT)*n_elem);
+      }
+    else
+      {
+      if(memory::is_aligned(dest))
+        {
+        memory::mark_as_aligned(dest);
+        
+        arrayops::inplace_set_base(dest, val, n_elem);
+        }
+      else
+        {
+        arrayops::inplace_set_base(dest, val, n_elem);
+        }
+      }
+    }
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_set_base(eT* dest, const eT val, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] = val;
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      dest[i] = val;
+      dest[j] = val;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] = val;
+      }
+    }
+  #endif
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_set_small(eT* dest, const eT val, const uword n_elem)
+  {
+  switch(n_elem)
+    {
+    case 16: dest[15] = val;
+    case 15: dest[14] = val;
+    case 14: dest[13] = val;
+    case 13: dest[12] = val;
+    case 12: dest[11] = val;
+    case 11: dest[10] = val;
+    case 10: dest[ 9] = val;
+    case  9: dest[ 8] = val;
+    case  8: dest[ 7] = val;
+    case  7: dest[ 6] = val;
+    case  6: dest[ 5] = val;
+    case  5: dest[ 4] = val;
+    case  4: dest[ 3] = val;
+    case  3: dest[ 2] = val;
+    case  2: dest[ 1] = val;
+    case  1: dest[ 0] = val;
+    default:;
     }
   }
 
@@ -467,17 +688,15 @@ inline
 void
 arrayops::inplace_plus(eT* dest, const eT val, const uword n_elem)
   {
-  uword i,j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if(memory::is_aligned(dest))
     {
-    dest[i] += val;
-    dest[j] += val;
+    memory::mark_as_aligned(dest);
+    
+    arrayops::inplace_plus_base(dest, val, n_elem);
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] += val;
+    arrayops::inplace_plus_base(dest, val, n_elem);
     }
   }
 
@@ -489,17 +708,15 @@ inline
 void
 arrayops::inplace_minus(eT* dest, const eT val, const uword n_elem)
   {
-  uword i,j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if(memory::is_aligned(dest))
     {
-    dest[i] -= val;
-    dest[j] -= val;
+    memory::mark_as_aligned(dest);
+    
+    arrayops::inplace_minus_base(dest, val, n_elem);
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] -= val;
+    arrayops::inplace_minus_base(dest, val, n_elem);
     }
   }
 
@@ -511,17 +728,15 @@ inline
 void
 arrayops::inplace_mul(eT* dest, const eT val, const uword n_elem)
   {
-  uword i,j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if(memory::is_aligned(dest))
     {
-    dest[i] *= val;
-    dest[j] *= val;
+    memory::mark_as_aligned(dest);
+    
+    arrayops::inplace_mul_base(dest, val, n_elem);
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] *= val;
+    arrayops::inplace_mul_base(dest, val, n_elem);
     }
   }
 
@@ -533,18 +748,148 @@ inline
 void
 arrayops::inplace_div(eT* dest, const eT val, const uword n_elem)
   {
-  uword i,j;
-  
-  for(i=0, j=1; j<n_elem; i+=2, j+=2)
+  if(memory::is_aligned(dest))
     {
-    dest[i] /= val;
-    dest[j] /= val;
+    memory::mark_as_aligned(dest);
+    
+    arrayops::inplace_div_base(dest, val, n_elem);
     }
-  
-  if(i < n_elem)
+  else
     {
-    dest[i] /= val;
+    arrayops::inplace_div_base(dest, val, n_elem);
     }
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_plus_base(eT* dest, const eT val, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] += val;
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      dest[i] += val;
+      dest[j] += val;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] += val;
+      }
+    }
+  #endif
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_minus_base(eT* dest, const eT val, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] -= val;
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      dest[i] -= val;
+      dest[j] -= val;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] -= val;
+      }
+    }
+  #endif
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_mul_base(eT* dest, const eT val, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] *= val;
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      dest[i] *= val;
+      dest[j] *= val;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] *= val;
+      }
+    }
+  #endif
+  }
+
+
+
+template<typename eT>
+arma_hot
+inline
+void
+arrayops::inplace_div_base(eT* dest, const eT val, const uword n_elem)
+  {
+  #if defined(ARMA_SIMPLE_LOOPS)
+    {
+    for(uword i=0; i<n_elem; ++i)
+      {
+      dest[i] /= val;
+      }
+    }
+  #else
+    {
+    uword i,j;
+    
+    for(i=0, j=1; j<n_elem; i+=2, j+=2)
+      {
+      dest[i] /= val;
+      dest[j] /= val;
+      }
+    
+    if(i < n_elem)
+      {
+      dest[i] /= val;
+      }
+    }
+  #endif
   }
 
 

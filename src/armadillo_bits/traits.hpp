@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2013 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2013 Conrad Sanderson
+// Copyright (C) 2008-2014 Conrad Sanderson
+// Copyright (C) 2008-2014 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -399,6 +399,23 @@ struct is_op_htrans2< const Op<T1,op_htrans2> >
 
 
 template<typename T>
+struct is_Mat_trans
+  { static const bool value = false; };
+
+template<typename T1>
+struct is_Mat_trans< Op<T1,op_htrans> >
+  { static const bool value = is_Mat<T1>::value; };
+
+template<typename T1>
+struct is_Mat_trans< Op<T1,op_htrans2> >
+  { static const bool value = is_Mat<T1>::value; };
+
+
+//
+//
+
+
+template<typename T>
 struct is_GenCube
   { static const bool value = false; };
  
@@ -720,12 +737,20 @@ struct is_arma_sparse_type
 
 template<typename T1, typename T2>
 struct is_same_type
-  { static const bool value = false; };
+  {
+  static const bool value = false;
+  static const bool yes   = false;
+  static const bool no    = true;
+  };
 
 
 template<typename T1>
 struct is_same_type<T1,T1>
-  { static const bool value = true; };
+  {
+  static const bool value = true;
+  static const bool yes   = true;
+  static const bool no    = false;
+  };
 
 
 
@@ -985,6 +1010,25 @@ struct is_complex_strict< std::complex<double> >
 
 
 
+template<typename T1>
+struct is_cx
+  {
+  static const bool value = false;
+  static const bool yes   = false;
+  static const bool no    = true;
+  };
+
+// template<>
+template<typename T>
+struct is_cx< std::complex<T> >
+  {
+  static const bool value = true;
+  static const bool yes   = true;
+  static const bool no    = false;
+  };
+
+
+
 //! check for a weird implementation of the std::complex class
 template<typename T1>
 struct is_supported_complex
@@ -1135,6 +1179,50 @@ struct resolves_to_vector : public resolves_to_vector_redirect<T1, is_arma_type<
 template<typename T1>
 struct resolves_to_sparse_vector : public resolves_to_vector_redirect<T1, is_arma_sparse_type<T1>::value>::result {};
 
+//
+
+template<typename T1>
+struct resolves_to_rowvector_default { static const bool value = false;      };
+
+template<typename T1>
+struct resolves_to_rowvector_test    { static const bool value = T1::is_row; };
+
+
+template<typename T1, bool condition>
+struct resolves_to_rowvector_redirect {};
+
+template<typename T1>
+struct resolves_to_rowvector_redirect<T1, false> { typedef resolves_to_rowvector_default<T1> result; };
+
+template<typename T1>
+struct resolves_to_rowvector_redirect<T1, true>  { typedef resolves_to_rowvector_test<T1>    result; };
+
+
+template<typename T1>
+struct resolves_to_rowvector : public resolves_to_rowvector_redirect<T1, is_arma_type<T1>::value>::result {};
+
+//
+
+template<typename T1>
+struct resolves_to_colvector_default { static const bool value = false;      };
+
+template<typename T1>
+struct resolves_to_colvector_test    { static const bool value = T1::is_col; };
+
+
+template<typename T1, bool condition>
+struct resolves_to_colvector_redirect {};
+
+template<typename T1>
+struct resolves_to_colvector_redirect<T1, false> { typedef resolves_to_colvector_default<T1> result; };
+
+template<typename T1>
+struct resolves_to_colvector_redirect<T1, true>  { typedef resolves_to_colvector_test<T1>    result; };
+
+
+template<typename T1>
+struct resolves_to_colvector : public resolves_to_colvector_redirect<T1, is_arma_type<T1>::value>::result {};
+
 
 
 template<typename glue_type> struct is_glue_mixed_times                   { static const bool value = false; };
@@ -1155,6 +1243,8 @@ template<>                   struct is_glue_mixed_elem<glue_rel_lteq>  { static 
 template<>                   struct is_glue_mixed_elem<glue_rel_gteq>  { static const bool value = true; };
 template<>                   struct is_glue_mixed_elem<glue_rel_eq>    { static const bool value = true; };
 template<>                   struct is_glue_mixed_elem<glue_rel_noteq> { static const bool value = true; };
+template<>                   struct is_glue_mixed_elem<glue_rel_and>   { static const bool value = true; };
+template<>                   struct is_glue_mixed_elem<glue_rel_or>    { static const bool value = true; };
 
 
 

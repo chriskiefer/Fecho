@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright (C) 2008-2013 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2013 Conrad Sanderson
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -714,6 +714,16 @@ diagview<eT>::div_inplace(Mat<eT>& out, const diagview<eT>& in)
 
 template<typename eT>
 arma_inline
+eT
+diagview<eT>::at_alt(const uword ii) const
+  {
+  return m.at(ii+row_offset, ii+col_offset);
+  }
+
+
+
+template<typename eT>
+arma_inline
 eT&
 diagview<eT>::operator[](const uword ii)
   {
@@ -859,7 +869,9 @@ diagview<eT>::fill(const eT val)
   
   Mat<eT>& x = const_cast< Mat<eT>& >(m);
   
-  for(uword ii=0; ii < n_elem; ++ii)
+  const uword local_n_elem = n_elem;
+  
+  for(uword ii=0; ii < local_n_elem; ++ii)
     {
     x.at(ii+row_offset, ii+col_offset) = val;
     }
@@ -887,6 +899,44 @@ diagview<eT>::ones()
   arma_extra_debug_sigprint();
   
   (*this).fill(eT(1));
+  }
+
+
+
+template<typename eT>
+inline
+void
+diagview<eT>::randu()
+  {
+  arma_extra_debug_sigprint();
+  
+  Mat<eT>& x = const_cast< Mat<eT>& >(m);
+  
+  const uword local_n_elem = n_elem;
+  
+  for(uword ii=0; ii < local_n_elem; ++ii)
+    {
+    x.at(ii+row_offset, ii+col_offset) = eT(arma_rng::randu<eT>());
+    }
+  }
+
+
+
+template<typename eT>
+inline
+void
+diagview<eT>::randn()
+  {
+  arma_extra_debug_sigprint();
+  
+  Mat<eT>& x = const_cast< Mat<eT>& >(m);
+  
+  const uword local_n_elem = n_elem;
+  
+  for(uword ii=0; ii < local_n_elem; ++ii)
+    {
+    x.at(ii+row_offset, ii+col_offset) = eT(arma_rng::randn<eT>());
+    }
   }
 
 

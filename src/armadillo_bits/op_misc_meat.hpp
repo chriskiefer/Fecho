@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -271,18 +271,6 @@ op_abs::apply( Cube<typename T1::pod_type>& out, const mtOpCube<typename T1::pod
       out_mem++;
       }
     }
-  }
-
-
-
-template<typename T1>
-inline
-void
-op_sympd::apply( Mat<typename T1::elem_type>& out, const Op<T1, op_sympd>& X )
-  {
-  arma_extra_debug_sigprint();
-  
-  out = X.m;
   }
 
 

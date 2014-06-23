@@ -1,5 +1,5 @@
-// Copyright (C) 2010-2013 NICTA (www.nicta.com.au)
 // Copyright (C) 2010-2013 Conrad Sanderson
+// Copyright (C) 2010-2013 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -188,6 +188,8 @@ template<> struct arma_glue_rel_only< glue_rel_lteq  > { typedef int result; };
 template<> struct arma_glue_rel_only< glue_rel_gteq  > { typedef int result; };
 template<> struct arma_glue_rel_only< glue_rel_eq    > { typedef int result; };
 template<> struct arma_glue_rel_only< glue_rel_noteq > { typedef int result; };
+template<> struct arma_glue_rel_only< glue_rel_and   > { typedef int result; };
+template<> struct arma_glue_rel_only< glue_rel_or    > { typedef int result; };
 
 
 

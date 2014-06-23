@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2011 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2011 Conrad Sanderson
+// Copyright (C) 2008-2011 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -39,17 +39,17 @@ struct arma_type_check_cxx1998<false>
 
 
 
-#if !defined(ARMA_USE_CXX11)
+#if defined(ARMA_USE_CXX11)
+  
+  #define arma_static_check(condition, message)  static_assert( !(condition), #message )
+  
+  #define arma_type_check(condition)  static_assert( !(condition), "error: incorrect or unsupported type" )
+  
+#else
 
   #define arma_static_check(condition, message)  static const char message[ (condition) ? -1 : +1 ]
   
   #define arma_type_check(condition)  arma_type_check_cxx1998<condition>::apply()
-
-#else
-
-  #define arma_static_check(condition, message)  static_assert( !(condition), #message )
-  
-  #define arma_type_check(condition)  static_assert( !(condition), "error: incorrect or unsupported type" )
 
 #endif
 

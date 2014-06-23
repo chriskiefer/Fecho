@@ -38,11 +38,15 @@ namespace Fecho {
     class ActivationFunctionSigmoid : public ActivationFunctionBase<T> {
     public:
         inline void process(Col<T> &x) {
-            x = 1.0 / (1.0 + exp(x));
+            x = 1.0 / (1.0 + exp(-x));
             
         }
         inline void invProcess(Mat<T> &x) {
-            x = log((1.0/x) - 1.0);
+            x = -log((1.0/x) - 1.0);
+//            for(int i=0; i < x.n_elem; i++) {
+//                x[i] = x[i]==0 ? 0 : 1.0 / x[i];
+//            }
+//            x = log(x - 1.0);
         }
     };
 }

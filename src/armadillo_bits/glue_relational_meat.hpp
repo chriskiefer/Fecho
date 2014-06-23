@@ -1,5 +1,5 @@
-// Copyright (C) 2009-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2009-2012 Conrad Sanderson
+// Copyright (C) 2009-2014 Conrad Sanderson
+// Copyright (C) 2009-2014 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -235,6 +235,38 @@ glue_rel_noteq::apply
 
 
 
+template<typename T1, typename T2>
+inline
+void
+glue_rel_and::apply
+  (
+        Mat   <uword>& out,
+  const mtGlue<uword, T1, T2, glue_rel_and>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_applier_mat(&&, "operator&&");
+  }
+
+
+
+template<typename T1, typename T2>
+inline
+void
+glue_rel_or::apply
+  (
+        Mat   <uword>& out,
+  const mtGlue<uword, T1, T2, glue_rel_or>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_applier_mat(||, "operator||");
+  }
+
+
+
 //
 //
 //
@@ -333,6 +365,38 @@ glue_rel_noteq::apply
   arma_extra_debug_sigprint();
   
   arma_applier_cube(!=, "operator!=");
+  }
+
+
+
+template<typename T1, typename T2>
+inline
+void
+glue_rel_and::apply
+  (
+        Cube      <uword>& out,
+  const mtGlueCube<uword, T1, T2, glue_rel_and>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_applier_cube(&&, "operator&&");
+  }
+
+
+
+template<typename T1, typename T2>
+inline
+void
+glue_rel_or::apply
+  (
+        Cube      <uword>& out,
+  const mtGlueCube<uword, T1, T2, glue_rel_or>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_applier_cube(||, "operator||");
   }
 
 

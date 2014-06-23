@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -46,26 +46,26 @@ struct arma_config
   #else
     static const bool blas = false;
   #endif
-
-
-  #if defined(ARMA_USE_BOOST)
-    static const bool boost = true;
+  
+  
+  #if defined(ARMA_USE_ARPACK)
+    static const bool arpack = true;
   #else
-    static const bool boost = false;
+    static const bool arpack = false;
   #endif
   
-
-  #if defined(ARMA_USE_BOOST_DATE)
-    static const bool boost_date = true;
+  
+  #if defined(ARMA_USE_HDF5)
+    static const bool hdf5 = true;
   #else
-    static const bool boost_date = false;
+    static const bool hdf5 = false;
   #endif
-
-
-  #if !defined(ARMA_NO_DEBUG) && !defined(NDEBUG)
-    static const bool debug = true;
-  #else
+  
+  
+  #if defined(ARMA_NO_DEBUG)
     static const bool debug = false;
+  #else
+    static const bool debug = true;
   #endif
   
   
@@ -96,6 +96,20 @@ struct arma_config
     static const bool extra_code = true;
   #else
     static const bool extra_code = false;
+  #endif
+  
+  
+  #if defined(ARMA_USE_CXX11)
+    static const bool use_cxx11 = true;
+  #else
+    static const bool use_cxx11 = false;
+  #endif
+  
+  
+  #if defined(ARMA_USE_WRAPPER)
+    static const bool use_wrapper = true;
+  #else
+    static const bool use_wrapper = false;
   #endif
   };
 

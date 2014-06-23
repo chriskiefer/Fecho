@@ -162,7 +162,9 @@ public:
     Reservoir<FECHOTYPE> net;
     ReadOut<FECHOTYPE> ro;
     ReadOutInitialiser<FECHOTYPE> roInit;
-    Simulator<FECHOTYPE> sim;
+    Simulator<FECHOTYPE> *sim;
+//    Simulator<FECHOTYPE> simNormal;
+//    SimulatorLI<FECHOTYPE> simLi;
     bool needToInitialise;
     FECHOTYPE resRangeLow, resRangeHigh, resConn;
     FECHOTYPE inRangeLow, inRangeHigh, inConn;
@@ -174,6 +176,7 @@ public:
     
     enum trainTypes {LS, PI, RR} trainType;
 //    enum actTypes {AT_LINEAR, AT_TANH, AT_SIGMOID};
+    enum simTypes {SIM, SIM_LI} simType;
     
     vector<t_symbol*> trainInNames, trainOutNames;
     
@@ -195,6 +198,8 @@ public:
         for(int i=0; i < x->nIns; i++) trainInNames[i] = NULL;
         trainOutNames.resize(x->nOuts);
         for(int i=0; i < x->nOuts; i++) trainOutNames[i] = NULL;
+        simType = SIM;
+        sim = NULL;
         createESN(x);
         init(x);
     }
@@ -203,8 +208,15 @@ public:
         net = Reservoir<FECHOTYPE>(x->nIns, x->nRes, &resActTanh);
         ro = ReadOut<FECHOTYPE> (net, x->nOuts, &roActLin);
         ro.setMapInsToOuts(true);
-        sim = Simulator<FECHOTYPE>(net, ro);
-        needToInitialise = true;
+//        delete sim;
+        switch(simType) {
+            case SIM:
+                sim = new Simulator<FECHOTYPE>(net, ro);
+                break;
+            case SIM_LI:
+                sim = new SimulatorLI<FECHOTYPE>(net, ro, 0.5);
+                break;
+        }
     }
 
     static void bang_proxy(t_fecho_pd *x) {
@@ -219,7 +231,7 @@ public:
         if (needToInitialise) {
             init(x);
         }
-        sim.simulate(inputVec);
+        sim->simulate(inputVec);
         Col<FECHOTYPE> res = ro.getOutputs();
         for(int i=0; i < x->nOuts; i++) {
             x->outputslist[i].a_w.w_float = ro.getOutputs().at(i);
@@ -242,6 +254,7 @@ public:
 
     static void getOutputWeights_proxy(t_fecho_pd *x) {x->f->getOutputWeights(x);}
     void getOutputWeights(t_fecho_pd *x) {
+        post("Set output weights");
         x->outWeightsList[0].a_w.w_symbol = gensym("outWeights");
         for(int i=0; i < ro.getResWeights().n_elem; i++) {
             x->outWeightsList[i+1].a_w.w_float = ro.getResWeights().at(i);
@@ -249,6 +262,17 @@ public:
         outlet_list(x->out3, &s_anything, ro.getResWeights().n_elem + 1, x->outWeightsList);
     }
 
+    static void setOutputWeights_proxy(t_fecho_pd *x, t_symbol *selector, int argcount, t_atom *argvec) {x->f->setOutputWeights(x, selector, argcount, argvec);}
+    void setOutputWeights(t_fecho_pd *x, t_symbol *selector, int argcount, t_atom *argvec) {
+        if (argcount == ro.getResWeights().n_elem) {
+            for(int i=0; i < ro.getResWeights().n_elem; i++) {
+                ro.getResWeights().at(i) = argvec[i].a_w.w_float;
+            }
+        }else{
+            pd_error(x, "setOutputWeights: %d values required", ro.getResWeights().n_elem);
+        }
+    }
+    
     static void randomise_proxy(t_fecho_pd *x) {x->f->randomise(x);}
     void randomise(t_fecho_pd *x) {
         net.randomiseActivations();
@@ -312,6 +336,22 @@ public:
         post("washout: %d", washout);
     }
 
+    static void noise_proxy(t_fecho_pd *x, t_float w) {x->f->setNoise(x, w);}
+    void setNoise(t_fecho_pd *x, t_float newNoise) {
+        net.setNoise(newNoise);
+        post("noise: %d", newNoise);
+    }
+
+    static void leakRate_proxy(t_fecho_pd *x, t_float w) {x->f->setLeakRate(x, w);}
+    void setLeakRate(t_fecho_pd *x, t_float newLR) {
+        if (simType == SIM_LI) {
+            static_cast<SimulatorLI<FECHOTYPE>*>(sim)->setLeakRate(newLR);
+            post("leakRate: %f", newLR);
+        }else{
+            pd_error(x, "This parameter is only relevant for the leaky integration simulator");
+        }
+    }
+
     static void resScale_proxy(t_fecho_pd *x, t_float w) {x->f->setResScale(x, w);}
     void setResScale(t_fecho_pd *x, t_float newScale) {
         net.scaleReservoir(newScale);
@@ -330,6 +370,25 @@ public:
             trainType = RR;
         }else{
             post("Train type not recognised, try 'leastSquares', 'pseudoInverse', or 'ridgeRegression'");
+        }
+    }
+
+    static void simType_proxy(t_fecho_pd *x, t_symbol *w) {x->f->setSimType(x, w);}
+    void setSimType(t_fecho_pd *x, t_symbol *tt) {
+        post("simType: %s", tt->s_name);
+        string newSimType(tt->s_name);
+        bool typeOK = true;
+        if (newSimType == "sim") {
+            simType = SIM;
+        }else if (newSimType == "li") {
+            simType = SIM_LI;
+        }else{
+            post("Simulator type not recognised, try 'leastSquares', 'pseudoInverse', or 'ridgeRegression'");
+            typeOK = false;
+        }
+        if (typeOK) {
+            createESN(x);
+            init(x);
         }
     }
 
@@ -494,19 +553,19 @@ public:
                 switch(trainType) {
                     case LS:
                     {
-                        TrainerLeastSquares<FECHOTYPE> lstrainer(&sim, &ro, trainIn, trainOut, washout);
+                        TrainerLeastSquares<FECHOTYPE> lstrainer(sim, &ro, trainIn, trainOut, washout);
                         lstrainer.train();
                         break;
                     }
                     case PI:
                     {
-                        TrainerPseudoInverse<FECHOTYPE> pitrainer(&sim, &ro, trainIn, trainOut, washout);
+                        TrainerPseudoInverse<FECHOTYPE> pitrainer(sim, &ro, trainIn, trainOut, washout);
                         pitrainer.train();
                         break;
                     }
                     case RR:
                     {
-                        TrainerRidgeRegression<FECHOTYPE> rrtrainer(&sim, &ro, trainIn, trainOut, washout, 0.1);
+                        TrainerRidgeRegression<FECHOTYPE> rrtrainer(sim, &ro, trainIn, trainOut, washout, 0.1);
                         rrtrainer.train();
                         break;
                     }
@@ -520,7 +579,7 @@ public:
                     for(int j=0; j < x->nIns; j++) {
                         inputVec(j) = trainIn(i,j);
                     }
-                    sim.simulate(inputVec);
+                    sim->simulate(inputVec);
                     Col<FECHOTYPE> res = ro.getOutputs();
                     for(int j=0; j < x->nOuts; j++) {
                         testOut(i,j) = ro.getOutputs().at(j);
@@ -653,22 +712,23 @@ public:
 
     static void free(t_fecho_pd *x)
     {
-        if (x->f)
+        if (x->f) {
+            if (x->activationslist)
+                t_freebytes(x->activationslist, sizeof(t_atom *) * x->nRes);
+            if (x->outputslist)
+                t_freebytes(x->outputslist, sizeof(t_atom *) * x->nOuts);
+            if (x->errorslist)
+                t_freebytes(x->errorslist, sizeof(t_atom *) * x->nOuts);
+            if (x->inWeightsList)
+                t_freebytes(x->errorslist, x->f->net.getInputs().n_elem + 1);
+            if (x->resWeightsList)
+                t_freebytes(x->errorslist, x->f->net.getRes().n_elem + 1);
+            if (x->outWeightsList)
+                t_freebytes(x->errorslist, x->f->ro.getResWeights().n_elem + 1);
+            if (x->fbWeightsList)
+                t_freebytes(x->errorslist, x->f->ro.getFbWeights().n_elem + 1);
             delete x->f;
-        if (x->activationslist)
-            t_freebytes(x->activationslist, sizeof(t_atom *) * x->nRes);
-        if (x->outputslist)
-            t_freebytes(x->outputslist, sizeof(t_atom *) * x->nOuts);
-        if (x->errorslist)
-            t_freebytes(x->errorslist, sizeof(t_atom *) * x->nOuts);
-        if (x->inWeightsList)
-            t_freebytes(x->errorslist, x->f->net.getInputs().n_elem + 1);
-        if (x->resWeightsList)
-            t_freebytes(x->errorslist, x->f->net.getRes().n_elem + 1);
-        if (x->outWeightsList)
-            t_freebytes(x->errorslist, x->f->ro.getResWeights().n_elem + 1);
-        if (x->fbWeightsList)
-            t_freebytes(x->errorslist, x->f->ro.getFbWeights().n_elem + 1);
+        }
     }
 };
 
@@ -686,9 +746,12 @@ extern "C" __attribute__((visibility("default"))) void fecho_setup() {
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::dumpActs_proxy, gensym("getActivations"), A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::reset_proxy, gensym("reset"), A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::getOutputWeights_proxy, gensym("getOutputWeights"), A_NULL);
+    class_addmethod(fecho_pd_class, (t_method)fecho_pd::setOutputWeights_proxy, gensym("setOutputWeights"), A_GIMME, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::randomise_proxy, gensym("randomise"), A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::spectralRadius_proxy, gensym("spectralRadius"), A_FLOAT, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::washout_proxy, gensym("washout"), A_FLOAT, A_NULL);
+    class_addmethod(fecho_pd_class, (t_method)fecho_pd::noise_proxy, gensym("noise"), A_FLOAT, A_NULL);
+    class_addmethod(fecho_pd_class, (t_method)fecho_pd::leakRate_proxy, gensym("leakrate"), A_FLOAT, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::resScale_proxy, gensym("resScale"), A_FLOAT, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::resparams_proxy, gensym("resParams"), A_GIMME, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::inputparams_proxy, gensym("inputParams"), A_GIMME, A_NULL);
@@ -698,6 +761,7 @@ extern "C" __attribute__((visibility("default"))) void fecho_setup() {
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::trainOutBuffer_proxy, gensym("trainOutBuffer"), A_GIMME, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::train_proxy, gensym("train"), A_GIMME, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::trainType_proxy, gensym("trainType"), A_SYMBOL, A_NULL);
+    class_addmethod(fecho_pd_class, (t_method)fecho_pd::simType_proxy, gensym("simType"), A_SYMBOL, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::resAct_proxy, gensym("resActivation"), A_SYMBOL, A_NULL);
     class_addmethod(fecho_pd_class, (t_method)fecho_pd::roAct_proxy, gensym("readoutActivation"), A_SYMBOL, A_NULL);
     

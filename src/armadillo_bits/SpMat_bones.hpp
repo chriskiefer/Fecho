@@ -1,5 +1,5 @@
 // Copyright (C) 2011-2013 Ryan Curtin
-// Copyright (C) 2012-2013 Conrad Sanderson
+// Copyright (C) 2012-2014 Conrad Sanderson
 // Copyright (C) 2011 Matthew Amidon
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
@@ -36,28 +36,34 @@ class SpMat : public SpBase< eT, SpMat<eT> >
    * The memory used to store the values of the matrix.
    * In accordance with the CSC format, this stores only the actual values.
    * The correct locations of the values are assembled from the row indices
-   * and the column pointers.
+   * and the column pointers.  The length of this array is n_nonzero + 1; the
+   * final value ensures the integrity of iterators.  If you are planning on
+   * resizing this vector, it's probably best to use mem_resize() instead.
    */
   const eT* const values;
   
   /**
    * The row indices of each value.  row_indices[i] is the row of values[i].
    * The length of this array is n_nonzero + 1; the final value ensures the
-   * integrity of iterators.
+   * integrity of iterators.  If you are planning on resizing this vector, it's
+   * probably best to use mem_resize() instead.
    */
   const uword* const row_indices;
   
   /**
    * The column pointers.  This stores the index of the first item in column i.
    * That is, values[col_ptrs[i]] is the first value in column i, and it is in
-   * row row_indices[col_ptrs[i]].
+   * row row_indices[col_ptrs[i]].  This array is of length (n_cols + 2); the
+   * element col_ptrs[n_cols] should be equal to n_nonzero, and the element
+   * col_ptrs[n_cols + 1] is an invalid very large value that ensures the
+   * integrity of iterators.
    */
   const uword* const col_ptrs;
   
   inline  SpMat();  //! Size will be 0x0 (empty).
   inline ~SpMat();
   
-  inline SpMat(const uword in_rows, const uword in_cols);
+  inline          SpMat(const uword in_rows, const uword in_cols);
   
   inline                  SpMat(const char*        text);
   inline const SpMat& operator=(const char*        text);
@@ -65,8 +71,16 @@ class SpMat : public SpBase< eT, SpMat<eT> >
   inline const SpMat& operator=(const std::string& text);
   inline                  SpMat(const SpMat<eT>&   x);
 
+  
+  #if defined(ARMA_USE_CXX11)
+  inline                  SpMat(SpMat&& m);
+  inline const SpMat& operator=(SpMat&& m);
+  #endif
+  
   template<typename T1, typename T2> inline SpMat(const Base<uword,T1>& locations, const Base<eT,T2>& values, const bool sort_locations = true);
   template<typename T1, typename T2> inline SpMat(const Base<uword,T1>& locations, const Base<eT,T2>& values, const uword n_rows, const uword n_cols, const bool sort_locations = true);
+  
+  template<typename T1, typename T2, typename T3> inline SpMat(const Base<uword,T1>& rowind, const Base<uword,T2>& colptr, const Base<eT,T3>& values, const uword n_rows, const uword n_cols);
   
   inline const SpMat&  operator=(const eT val); //! Sets size to 1x1.
   inline const SpMat& operator*=(const eT val);
@@ -184,12 +198,18 @@ class SpMat : public SpBase< eT, SpMat<eT> >
   arma_inline       SpSubview<eT> submat(const uword in_row1, const uword in_col1, const uword in_row2, const uword in_col2);
   arma_inline const SpSubview<eT> submat(const uword in_row1, const uword in_col1, const uword in_row2, const uword in_col2) const;
   
+  arma_inline       SpSubview<eT> submat(const uword in_row1, const uword in_col1, const SizeMat& s);
+  arma_inline const SpSubview<eT> submat(const uword in_row1, const uword in_col1, const SizeMat& s) const;
   
   inline            SpSubview<eT> submat    (const span& row_span, const span& col_span);
   inline      const SpSubview<eT> submat    (const span& row_span, const span& col_span) const;
   
   inline            SpSubview<eT> operator()(const span& row_span, const span& col_span);
   inline      const SpSubview<eT> operator()(const span& row_span, const span& col_span) const;
+  
+  arma_inline       SpSubview<eT> operator()(const uword in_row1, const uword in_col1, const SizeMat& s);
+  arma_inline const SpSubview<eT> operator()(const uword in_row1, const uword in_col1, const SizeMat& s) const;
+  
   
   /**
    * Element access; access the i'th element (works identically to the Mat accessors).
@@ -232,6 +252,8 @@ class SpMat : public SpBase< eT, SpMat<eT> >
   arma_inline arma_warn_unused bool in_range(const uword   in_row, const span& col_span) const;
   arma_inline arma_warn_unused bool in_range(const span& row_span, const span& col_span) const;
   
+  arma_inline arma_warn_unused bool in_range(const uword in_row, const uword in_col, const SizeMat& s) const;
+  
   /**
    * Printing the matrix.
    *
@@ -251,17 +273,17 @@ class SpMat : public SpBase< eT, SpMat<eT> >
   
   //! Copy the size of another matrix.
   template<typename eT2> inline void copy_size(const SpMat<eT2>& m);
-  template<typename eT2> inline void copy_size(const Mat<eT2>& m);
+  template<typename eT2> inline void copy_size(const   Mat<eT2>& m);
 
   /**
-   * Resize the matrix to a given size.  The matrix will be resized to be a column vector (i.e. in_elem columns, 1 row).
+   * Set the size of the matrix; the matrix will be sized as a column vector
    *
    * @param in_elem Number of elements to allow.
    */
   inline void set_size(const uword in_elem);
 
   /**
-   * Resize the matrix to a given size.
+   * Set the size of the matrix
    *
    * @param in_rows Number of rows to allow.
    * @param in_cols Number of columns to allow.
@@ -281,6 +303,7 @@ class SpMat : public SpBase< eT, SpMat<eT> >
   inline const SpMat& speye(const uword in_rows, const uword in_cols);
   
   inline const SpMat& sprandu(const uword in_rows, const uword in_cols, const double density);
+  
   inline const SpMat& sprandn(const uword in_rows, const uword in_cols, const double density);
   
   inline void reset();
@@ -495,6 +518,8 @@ class SpMat : public SpBase< eT, SpMat<eT> >
   inline bool  empty() const;
   inline uword size()  const;
   
+  inline void remove_zeros();
+  
   /**
    * Resize memory.  You are responsible for updating the column pointers and
    * filling the new memory (if the new size is larger).  If the new size is
@@ -528,6 +553,10 @@ class SpMat : public SpBase< eT, SpMat<eT> >
    * Initialize from another matrix (copy).
    */
   inline void init(const SpMat& x);
+  
+  
+  inline void init_batch(const Mat<uword>& locations, const Mat<eT>& values, const bool sort_locations);
+  
   
   
   private:

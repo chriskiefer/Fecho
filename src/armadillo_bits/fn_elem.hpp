@@ -1,5 +1,5 @@
-// Copyright (C) 2008-2013 NICTA (www.nicta.com.au)
 // Copyright (C) 2008-2013 Conrad Sanderson
+// Copyright (C) 2008-2013 NICTA (www.nicta.com.au)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,32 +8,6 @@
 
 //! \addtogroup fn_elem
 //! @{
-
-
-
-//
-// find
-
-template<typename eT, typename T1>
-inline
-const mtOp<uword, T1, op_find>
-find(const Base<eT,T1>& X, const uword k = 0, const char* direction = "first")
-  {
-  arma_extra_debug_sigprint();
-  
-  const char sig = direction[0];
-  
-  arma_debug_check
-    (
-    (sig != 'f' && sig != 'F' && sig != 'l' && sig != 'L'),
-    "find(): 3rd input argument must be \"first\" or \"last\""
-    );
-  
-  const uword type = (sig == 'f' || sig == 'F') ? 0 : 1;
-  
-  return mtOp<uword, T1, op_find>(X.get_ref(), k, type);
-  }
-
 
 
 //
@@ -541,22 +515,6 @@ conj(const eOpCube<T1, eop_conj>& A)
 
 
 
-// TODO: this needs a more elaborate template restriction mechanism to work properly,
-//       i.e. an overloaded version of thus function should do nothing if the input type is non-complex
-// 
-// //! the conjugate of the transpose of a complex matrix is the same as the hermitian transpose
-// template<typename T1>
-// arma_inline
-// const Op<T1, op_htrans>
-// conj(const Op<T1, op_strans>& A)
-//   {
-//   arma_extra_debug_sigprint();
-//   
-//   return Op<T1, op_htrans>(A.m);
-//   }
-
-
-
 // pow
 
 template<typename T1>
@@ -690,6 +648,33 @@ round(const BaseCube<typename T1::elem_type,T1>& A)
   arma_extra_debug_sigprint();
   
   return eOpCube<T1, eop_round>(A.get_ref());
+  }
+
+
+
+//
+// sign
+
+template<typename T1>
+arma_inline
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_sign> >::result
+sign(const T1& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_sign>(A);
+  }
+
+
+
+template<typename T1>
+arma_inline
+const eOpCube<T1, eop_sign>
+sign(const BaseCube<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOpCube<T1, eop_sign>(A.get_ref());
   }
 
 

@@ -207,7 +207,8 @@ public:
         net = Reservoir<FECHOTYPE>(x->nIns, x->nRes, &resActTanh);
         ro = ReadOut<FECHOTYPE> (net, x->nOuts, &roActLin);
         ro.setMapInsToOuts(true);
-        delete sim;
+        if (sim)
+            delete sim;
         switch(simType) {
             case SIM:
                 sim = new Simulator<FECHOTYPE>(net, ro);

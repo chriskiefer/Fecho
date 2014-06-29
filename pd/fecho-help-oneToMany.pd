@@ -1,0 +1,232 @@
+#N canvas 187 22 1067 813 10;
+#X msg 283 99 reset;
+#X msg 301 142 randomise;
+#X msg 74 148 getActivations;
+#X msg 316 271 initialise;
+#X msg 74 339 train;
+#X obj 318 392 print nmrse;
+#X msg 286 120 trainType leastSquares;
+#X msg 296 141 trainType pseudoInverse;
+#X msg 306 160 trainType ridgeRegression;
+#X msg 672 255 clear;
+#X msg 674 211 start;
+#X msg 674 231 stop;
+#X msg 675 275 export trainInBuffer;
+#X msg 905 270 export trainOutBuffer;
+#X obj 460 14 bang~;
+#X obj 479 261 demux 1 2;
+#X obj 486 222 hradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+-1 -1 0;
+#X msg 317 293 washout 500;
+#X obj 82 11 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1 1
+;
+#N canvas 0 22 450 278 (subpatch) 0;
+#X array array-activations 100 float 3;
+#A 0 -0.0256864 -0.0982766 -0.165143 0.0320168 -0.0302137 -0.214026
+-0.0160251 -0.0940609 -0.191186 0.227658 -0.0310716 0.0711876 0.194451
+-0.208307 -0.0373575 -0.0597685 0.00386207 -0.0948936 0.174649 0.037938
+0.0556749 0.0638578 0.0682691 0.17939 -0.0418855 -0.0344132 -0.000246782
+-0.0405943 0.0269677 -0.0666797 -0.0527386 0.241284 -0.00212663 -0.0839915
+-0.174744 -0.173303 -0.113386 0.147243 -0.0898231 -0.0743716 -0.0110081
+-0.0499907 -0.118674 0.120395 0.0748551 0.0856524 0.00859176 0.0953351
+0.252169 0.0510847 -0.213487 0.00745507 -0.151945 0.0750002 0.0331983
+0.0826103 -0.13151 0.0962827 -0.0453353 0.0998427 0.109403 0.0279147
+-0.24838 0.0561118 0.0974037 -0.078915 -0.132422 -0.0264907 -0.117996
+-0.136423 -0.0883869 0.125413 -0.0538625 -0.0415053 0.0453356 -0.00235346
+-0.0919047 -0.090184 -0.036699 0.167407 0.0969017 -0.0607716 0.0467152
+0.210713 -0.191143 0.140876 -0.0396879 0.0321021 0.0351635 -0.140321
+0.157796 -0.0403555 0.0891123 0.173189 0.0931585 -0.135054 -0.0889652
+0.130536 -0.0233421 -0.0990819;
+#X coords 0 1 100 -1 200 140 1 0 0;
+#X restore 833 388 graph;
+#X obj 852 19 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X obj 793 19 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X msg 283 76 randomise;
+#X msg 265 7 readoutActivation linear;
+#X obj 49 73 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X msg 309 180 resParams -1 1 0.3;
+#X obj 400 69 spigot~;
+#X msg 281 55 simType li;
+#X obj 89 37 metro 20;
+#X msg 273 32 resActivation tanh;
+#X obj 343 413 tabset array-activations;
+#X obj 793 310 multiTable \$0-outs 32 10000 1000;
+#X msg 902 250 clear 0;
+#N canvas 634 160 531 450 gamepad 0;
+#X obj 182 114 hid;
+#X msg 154 50 print;
+#X msg 79 85 open 4;
+#X msg 209 74 poll 2;
+#X obj 166 190 route key abs;
+#X obj 105 257 route btn_0 btn_2;
+#X floatatom 42 325 5 0 0 0 - - -;
+#X floatatom 110 320 5 0 0 0 - - -;
+#X obj 249 261 route abs_x abs_y;
+#X floatatom 208 363 5 0 0 0 - - -;
+#X floatatom 280 363 5 0 0 0 - - -;
+#X obj 232 310 / 255;
+#X obj 296 313 / 255;
+#X obj 46 409 outlet btn1;
+#X obj 141 414 outlet btn2;
+#X obj 241 415 outlet x;
+#X obj 318 414 outlet y;
+#X connect 0 0 4 0;
+#X connect 1 0 0 0;
+#X connect 2 0 0 0;
+#X connect 3 0 0 0;
+#X connect 4 0 5 0;
+#X connect 4 1 8 0;
+#X connect 5 0 6 0;
+#X connect 5 0 13 0;
+#X connect 5 1 7 0;
+#X connect 5 1 14 0;
+#X connect 8 0 11 0;
+#X connect 8 1 12 0;
+#X connect 11 0 9 0;
+#X connect 11 0 15 0;
+#X connect 12 0 10 0;
+#X connect 12 0 16 0;
+#X restore 566 43 pd gamepad;
+#X obj 562 302 multiTable \$0-ins 2 10000 1000;
+#X obj 546 146 pack f f;
+#X obj 677 12 sel 1;
+#X obj 678 47 sel 1;
+#X obj 674 73 sel 0;
+#X obj 676 110 sel 0;
+#X obj 816 18 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X obj 879 25 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X floatatom 546 111 5 0 0 0 - - -;
+#X floatatom 594 112 5 0 0 0 - - -;
+#X obj 174 429 unpack~;
+#X obj 159 494 rifft~;
+#X obj 137 554 output~;
+#X obj 188 374 fecho 2 400 32;
+#N canvas 0 22 450 278 (subpatch) 0;
+#X array outputs 32 float 3;
+#A 0 -1.08056 -1.0721 -1.10743 -1.09921 -1.07081 -1.02524 -0.985357
+-0.935179 -0.883553 -0.794544 -0.686441 -0.59698 -0.499305 -0.458058
+-0.415691 -0.400556 -0.340553 -0.325193 -0.298692 -0.272325 -0.227726
+-0.0934946 0.0222204 0.185894 0.305174 0.366086 0.626567 0.748646 0.85128
+0.905153 -0.0789819 0;
+#X coords 0 1 31 -1 200 140 1;
+#X restore 234 573 graph;
+#X obj 291 468 tabset outputs;
+#X obj 177 458 *~ 32;
+#X msg 315 248 spectralRadius 0.3;
+#X msg 310 204 inputParams -0.3 0.3 1;
+#X msg 175 40 leakrate 0.5;
+#N canvas 0 22 450 278 (subpatch) 0;
+#X array pole1 32 float 3;
+#A 0 0.442852 0.499995 0.299997 0.342854 0.399996 0.457138 0.485709
+0.51428 0.542851 0.542851 0.542851 0.542851 0.499995 0.428567 0.371425
+0.25714 0.192855 0.12857 0.0285711 -0.0214283 -0.0714278 -0.121427
+-0.171427 -0.25714 -0.285711 -0.342854 -0.38571 -0.399996 -0.428567
+-0.328568 -0.428567 0;
+#X coords 0 1 31 -1 200 140 1;
+#X restore 579 401 graph;
+#N canvas 0 22 450 278 (subpatch) 0;
+#X array pole2 32 float 3;
+#A 0 -0.928531 -0.928531 -0.928531 -0.928531 -0.914246 -0.885675 -0.857105
+-0.821393 -0.78568 -0.714254 -0.628544 -0.557118 -0.471408 -0.428553
+-0.385697 -0.357127 -0.299987 -0.278559 -0.242846 -0.214276 -0.171421
+-0.0571404 0.0428553 0.185706 0.285702 0.342842 0.557118 0.657114 0.742825
+0.771395 0 0;
+#X coords 0 1 31 -1 200 140 1;
+#X restore 580 585 graph;
+#X obj 798 166 tabdump pole1;
+#X obj 920 172 tabdump pole2;
+#X obj 831 110 demux 1 2;
+#X msg 860 72 1;
+#X msg 895 74 2;
+#X msg 312 226 fbParams -1 1 0;
+#X msg 69 265 resScale \$1;
+#X obj 22 157 vsl 15 128 0 1.5 0 0 empty empty empty 0 -9 0 10 -262144
+-1 -1 7700 1;
+#X obj 354 739 csvlog /tmp/onetom.csv 34;
+#X obj 408 520 list append;
+#X msg 462 643 write;
+#X msg 468 681 start;
+#X msg 511 711 stop;
+#X msg 539 753 clear;
+#X connect 0 0 47 0;
+#X connect 1 0 47 0;
+#X connect 2 0 47 0;
+#X connect 3 0 47 0;
+#X connect 4 0 47 0;
+#X connect 6 0 47 0;
+#X connect 7 0 47 0;
+#X connect 8 0 47 0;
+#X connect 9 0 34 0;
+#X connect 10 0 31 0;
+#X connect 10 0 34 0;
+#X connect 11 0 31 0;
+#X connect 11 0 34 0;
+#X connect 12 0 34 0;
+#X connect 13 0 31 0;
+#X connect 14 0 42 0;
+#X connect 14 0 43 0;
+#X connect 14 0 58 0;
+#X connect 15 0 47 0;
+#X connect 15 0 65 0;
+#X connect 15 1 34 0;
+#X connect 16 0 15 1;
+#X connect 16 0 26 1;
+#X connect 17 0 47 0;
+#X connect 18 0 28 0;
+#X connect 20 0 60 0;
+#X connect 21 0 59 0;
+#X connect 22 0 47 0;
+#X connect 23 0 47 0;
+#X connect 24 0 2 0;
+#X connect 25 0 47 0;
+#X connect 27 0 47 0;
+#X connect 28 0 2 0;
+#X connect 29 0 47 0;
+#X connect 31 0 47 0;
+#X connect 32 0 31 0;
+#X connect 33 0 36 0;
+#X connect 33 0 38 0;
+#X connect 33 1 37 0;
+#X connect 33 1 39 0;
+#X connect 33 2 42 0;
+#X connect 33 3 43 0;
+#X connect 34 0 47 0;
+#X connect 35 0 15 0;
+#X connect 36 0 21 0;
+#X connect 37 0 20 0;
+#X connect 38 0 40 0;
+#X connect 39 0 41 0;
+#X connect 42 0 35 0;
+#X connect 43 0 35 1;
+#X connect 44 0 50 0;
+#X connect 45 0 46 0;
+#X connect 45 0 46 1;
+#X connect 47 0 44 0;
+#X connect 47 0 49 0;
+#X connect 47 0 65 1;
+#X connect 47 1 30 0;
+#X connect 47 2 5 0;
+#X connect 50 0 45 0;
+#X connect 50 0 45 1;
+#X connect 51 0 47 0;
+#X connect 52 0 47 0;
+#X connect 53 0 47 0;
+#X connect 56 0 31 0;
+#X connect 57 0 31 0;
+#X connect 58 0 56 0;
+#X connect 58 1 57 0;
+#X connect 59 0 58 1;
+#X connect 60 0 58 1;
+#X connect 61 0 47 0;
+#X connect 62 0 47 0;
+#X connect 63 0 62 0;
+#X connect 65 0 64 0;
+#X connect 66 0 64 0;
+#X connect 67 0 64 0;
+#X connect 68 0 64 0;
+#X connect 69 0 64 0;

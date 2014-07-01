@@ -1,0 +1,22 @@
+  o__ __o__/_                      o                      
+ <|    v                          <|>                     
+ < >                              / >                     
+  |         o__  __o       __o__  \o__ __o      o__ __o   
+  o__/_    /v      |>     />  \    |     v\    /v     v\  
+  |       />      //    o/        / \     <\  />       <\ 
+ <o>      \o    o/     <|         \o/     o/  \         / 
+  |        v\  /v __o   \\         |     <|    o       o  
+ / \        <\/> __/>    _\o__</  / \    / \   <\__ __/>  
+                                                          
+                                                          
+                                                          
+
+This folder contains the source code for a PD extension.  To compile, do something like this:
+
+mkdir build
+cd build
+cmake ..
+
+A binary for OSX is in the bin folder.  The object should in theory run cross platform - contributions of binaries for other platforms are welcome.
+
+Try out the help files for examples of use.

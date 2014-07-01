@@ -339,7 +339,7 @@ public:
     static void noise_proxy(t_fecho_pd *x, t_float w) {x->f->setNoise(x, w);}
     void setNoise(t_fecho_pd *x, t_float newNoise) {
         net.setNoise(newNoise);
-        post("noise: %d", newNoise);
+        post("noise: %f", newNoise);
     }
 
     static void leakRate_proxy(t_fecho_pd *x, t_float w) {x->f->setLeakRate(x, w);}

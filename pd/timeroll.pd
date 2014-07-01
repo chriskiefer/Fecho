@@ -1,8 +1,8 @@
-#N canvas 1 53 664 232 10;
+#N canvas 1 53 783 392 10;
 #N canvas 0 22 450 300 (subpatch) 0;
 #X array \$0-_ 100 float 0;
-#X coords 0 -1 99 1 200 100 1 0 0;
-#X restore 10 53 graph;
+#X coords 0 1 99 -1 300 200 1 0 0;
+#X restore 10 8 graph;
 #X obj 272 116 list;
 #X obj 272 162 list trim;
 #X obj 272 14 inlet;
@@ -30,4 +30,4 @@
 #X connect 12 0 1 1;
 #X connect 12 2 1 1;
 #X connect 14 0 2 0;
-#X coords 0 -1 1 1 200 145 1 10 10;
+#X coords 0 1 1 -1 300 200 1 10 10;

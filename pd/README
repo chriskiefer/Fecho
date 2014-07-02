@@ -11,12 +11,16 @@
                                                           
                                                           
 
-This folder contains the source code for a PD extension.  To compile, do something like this:
+This folder contains the source code for a Pure Data extension (http://puredata.info/).  
+
+To compile, do something like this:
 
 mkdir build
 cd build
 cmake ..
 
-A binary for OSX is in the bin folder.  The object should in theory run cross platform - contributions of binaries for other platforms are welcome.
+A binary for OSX is in the bin folder, you can install it by copying it into your /Library/Pd folder.  
 
-Try out the help files for examples of use.
+The code should in theory run cross platform - contributions of binaries for other platforms are welcome.
+
+Try out the help files for examples of use, they should work fine in 'PD Extended'.
